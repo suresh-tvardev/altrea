@@ -24,9 +24,10 @@ export const Header = ({ isConnected, onToggleConnection }: HeaderProps) => {
 
           <div className="flex items-center gap-3">
             <Button
-              variant={isConnected ? "success" : "secondary"}
+              variant={isConnected ? "default" : "secondary"}
               size="sm"
               onClick={onToggleConnection}
+              className={isConnected ? "bg-success hover:bg-success/90" : ""}
             >
               {isConnected ? (
                 <>
@@ -47,9 +48,11 @@ export const Header = ({ isConnected, onToggleConnection }: HeaderProps) => {
               </Button>
             </Link>
             
-            <Button variant="ghost" size="icon">
-              <User className="w-5 h-5" />
-            </Button>
+            <Link to="/profile">
+              <Button variant="ghost" size="icon">
+                <User className="w-5 h-5" />
+              </Button>
+            </Link>
           </div>
         </div>
       </div>
