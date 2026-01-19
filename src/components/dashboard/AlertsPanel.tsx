@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Alert } from '@/types/eeg';
 import { AlertTriangle, AlertCircle, Info, Bell, CheckCircle2, History } from 'lucide-react';
+import { alertService } from '@/services/alertService';
 
 interface AlertsPanelProps {
   alerts: Alert[];
@@ -100,10 +101,17 @@ export const AlertsPanel = ({ alerts, onAcknowledge }: AlertsPanelProps) => {
                     <p className="text-xs font-medium text-muted-foreground mb-1">
                       {formatAlertTime(alert.timestamp)}
                     </p>
-                    <p className="text-foreground text-sm leading-relaxed">
-                      <span className="font-semibold">Alert sent to caregivers:</span>{' '}
+                    <p className="text-foreground text-sm leading-relaxed mb-2">
                       {alert.message}
                     </p>
+                    {alert.recipients && alert.recipients.length > 0 && (
+                      <div className="mt-2 pt-2 border-t border-border/50">
+                        <p className="text-xs text-muted-foreground mb-1">
+                          <span className="font-semibold">Sent to:</span>{' '}
+                          {alertService.getRecipientNames(alert.recipients).join(', ') || 'No recipients'}
+                        </p>
+                      </div>
+                    )}
                     {!alert.acknowledged && (
                       <p className="text-xs text-muted-foreground mt-2 italic">
                         Tap to acknowledge

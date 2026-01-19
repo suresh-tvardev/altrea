@@ -1,5 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { EEGReading, EmotionalAnalysis, EmotionalState, Alert, HistoricalData, Insight } from '@/types/eeg';
+import { alertService } from '@/services/alertService';
+import { storageService } from '@/services/storage';
+import { useToast } from '@/hooks/use-toast';
 
 const generateEEGReading = (): EEGReading => ({
   timestamp: new Date(),
@@ -90,6 +93,7 @@ const generateInsights = (): Insight[] => [
 ];
 
 export const useEEGSimulation = () => {
+  const { toast } = useToast();
   const [readings, setReadings] = useState<EEGReading[]>([]);
   const [analysis, setAnalysis] = useState<EmotionalAnalysis>({
     state: 'neutral',
@@ -102,17 +106,46 @@ export const useEEGSimulation = () => {
   const [historicalData] = useState<HistoricalData[]>(generateHistoricalData());
   const [insights] = useState<Insight[]>(generateInsights());
   const [isConnected, setIsConnected] = useState(true);
+  
+  // Track last alert times to prevent duplicates
+  const lastAlertTimes = useRef<{ [key: string]: Date }>({});
 
-  const addAlert = useCallback((type: Alert['type'], message: string) => {
-    const newAlert: Alert = {
-      id: Date.now().toString(),
-      type,
-      message,
-      timestamp: new Date(),
-      acknowledged: false,
-    };
-    setAlerts(prev => [newAlert, ...prev].slice(0, 10));
-  }, []);
+  const addAlert = useCallback((alert: Alert) => {
+    setAlerts(prev => {
+      // Check if similar alert already exists (prevent exact duplicates)
+      const exists = prev.some(a => 
+        a.type === alert.type && 
+        a.message === alert.message &&
+        new Date().getTime() - a.timestamp.getTime() < 5000 // Within 5 seconds
+      );
+      if (exists) return prev;
+      
+      const updated = [alert, ...prev].slice(0, 20);
+      
+      // Save to localStorage
+      const history = storageService.getAlertHistory();
+      history.push({
+        ...alert,
+        timestamp: alert.timestamp.toISOString(),
+        sentTo: Object.fromEntries(
+          Object.entries(alert.sentTo || {}).map(([k, v]) => [k, v.toISOString()])
+        ),
+      });
+      storageService.saveAlertHistory(history);
+      
+      return updated;
+    });
+
+    // Show toast notification
+    const recipientNames = alertService.getRecipientNames(alert.recipients || []);
+    if (recipientNames.length > 0) {
+      toast({
+        title: `${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)} Alert Sent`,
+        description: `Sent to ${recipientNames.length} caregiver(s): ${recipientNames.join(', ')}`,
+        variant: alert.type === 'critical' ? 'destructive' : 'default',
+      });
+    }
+  }, [toast]);
 
   const acknowledgeAlert = useCallback((id: string) => {
     setAlerts(prev => prev.map(alert => 
@@ -130,13 +163,18 @@ export const useEEGSimulation = () => {
       const newAnalysis = analyzeEmotionalState([...readings.slice(-59), newReading]);
       setAnalysis(newAnalysis);
 
-      // Generate alerts based on analysis
-      if (newAnalysis.stressLevel > 80 && Math.random() > 0.9) {
-        addAlert('critical', 'Stress levels are unusually high. Immediate attention recommended.');
-      } else if (newAnalysis.anxietyLevel > 70 && Math.random() > 0.95) {
-        addAlert('warning', 'Anxiety patterns are elevated beyond normal range.');
-      } else if (newAnalysis.state === 'anxious' && Math.random() > 0.97) {
-        addAlert('warning', 'Prolonged anxious state detected. Monitoring closely.');
+      // Check thresholds using alert service
+      const alertCheck = alertService.checkThresholds(newAnalysis);
+      
+      if (alertCheck && alertCheck.shouldAlert) {
+        const lastAlertTime = lastAlertTimes.current[alertCheck.alertType];
+        
+        // Check if we should send alert (prevent duplicates)
+        if (alertService.shouldSendAlert(alertCheck.alertType, lastAlertTime)) {
+          const alert = alertService.createAlert(alertCheck.alertType, alertCheck.message);
+          addAlert(alert);
+          lastAlertTimes.current[alertCheck.alertType] = new Date();
+        }
       }
     }, 1000);
 

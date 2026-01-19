@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Activity, Settings, User, Wifi, WifiOff } from 'lucide-react';
 
@@ -16,7 +17,7 @@ export const Header = ({ isConnected, onToggleConnection }: HeaderProps) => {
               <Activity className="w-6 h-6 text-primary-foreground" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">MindCare</h1>
+              <h1 className="text-xl font-bold text-foreground">Altrea</h1>
               <p className="text-xs text-muted-foreground">EEG Emotional Wellness</p>
             </div>
           </div>
@@ -40,9 +41,11 @@ export const Header = ({ isConnected, onToggleConnection }: HeaderProps) => {
               )}
             </Button>
             
-            <Button variant="ghost" size="icon">
-              <Settings className="w-5 h-5" />
-            </Button>
+            <Link to="/settings">
+              <Button variant="ghost" size="icon">
+                <Settings className="w-5 h-5" />
+              </Button>
+            </Link>
             
             <Button variant="ghost" size="icon">
               <User className="w-5 h-5" />

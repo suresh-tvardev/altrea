@@ -1,40 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Caregiver } from '@/types/eeg';
-import { Phone, Mail, User, Star, MessageCircle } from 'lucide-react';
+import { Phone, Mail, User, Star, MessageCircle, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
-const mockCaregivers: Caregiver[] = [
-  {
-    id: '1',
-    name: 'Sarah Johnson',
-    relationship: 'Daughter',
-    phone: '+1 (555) 123-4567',
-    email: 'sarah.j@email.com',
-    isPrimary: true,
-  },
-  {
-    id: '2',
-    name: 'Dr. Michael Chen',
-    relationship: 'Primary Physician',
-    phone: '+1 (555) 987-6543',
-    email: 'dr.chen@clinic.com',
-    isPrimary: false,
-  },
-  {
-    id: '3',
-    name: 'Emma Williams',
-    relationship: 'Caregiver',
-    phone: '+1 (555) 456-7890',
-    email: 'emma.w@careservice.com',
-    isPrimary: false,
-  },
-];
+import { storageService } from '@/services/storage';
 
 export const CaregiversPanel = () => {
   const { toast } = useToast();
-  const [caregivers] = useState<Caregiver[]>(mockCaregivers);
+  const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
+
+  useEffect(() => {
+    loadCaregivers();
+    // Listen for storage changes (in case settings page updates)
+    const interval = setInterval(loadCaregivers, 2000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const loadCaregivers = () => {
+    const loaded = storageService.getCaregivers();
+    setCaregivers(loaded);
+  };
 
   const handleContact = (caregiver: Caregiver, method: 'call' | 'message') => {
     toast({
@@ -60,6 +47,11 @@ export const CaregiversPanel = () => {
           <User className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-foreground">Caregivers & Family</h3>
         </div>
+        <Link to="/settings">
+          <Button variant="ghost" size="icon">
+            <Settings className="w-4 h-4" />
+          </Button>
+        </Link>
       </div>
 
       <Button 
@@ -72,7 +64,20 @@ export const CaregiversPanel = () => {
       </Button>
 
       <div className="space-y-3">
-        {caregivers.map(caregiver => (
+        {caregivers.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground">
+            <User className="w-10 h-10 mx-auto mb-2 opacity-50" />
+            <p className="font-medium">No caregivers configured</p>
+            <p className="text-sm mt-1">Add caregivers in settings to receive alerts</p>
+            <Link to="/settings" className="mt-4 inline-block">
+              <Button variant="outline" size="sm">
+                <Settings className="w-4 h-4" />
+                Go to Settings
+              </Button>
+            </Link>
+          </div>
+        ) : (
+          caregivers.map(caregiver => (
           <div
             key={caregiver.id}
             className={cn(
@@ -118,7 +123,8 @@ export const CaregiversPanel = () => {
               </Button>
             </div>
           </div>
-        ))}
+        ))
+        )}
       </div>
     </div>
   );

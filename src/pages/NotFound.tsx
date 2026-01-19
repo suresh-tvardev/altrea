@@ -142,7 +142,7 @@ const AlertHistory = () => {
     }));
 
     const csvContent = [
-      'MindCare Alert History Report',
+      'Altrea Alert History Report',
       `Generated: ${new Date().toLocaleString()}`,
       `Total Alerts: ${stats.total}`,
       `Critical: ${stats.critical} | Warning: ${stats.warning} | Info: ${stats.info}`,
@@ -156,7 +156,7 @@ const AlertHistory = () => {
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = `mindcare-alert-report-${new Date().toISOString().split('T')[0]}.csv`;
+    link.download = `Altrea-alert-report-${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
   };
 

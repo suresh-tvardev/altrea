@@ -19,18 +19,19 @@ export interface EmotionalAnalysis {
 
 export interface Alert {
   id: string;
-  type: 'critical' | 'warning' | 'info';
+  type: 'warning' | 'critical' | 'info';
   message: string;
   timestamp: Date;
   acknowledged: boolean;
 }
 
-export interface HistoricalData {
-  date: string;
-  avgStress: number;
-  avgAnxiety: number;
-  avgCalm: number;
-  dominantState: EmotionalState;
+export interface Caregiver {
+  id: string;
+  name: string;
+  relationship: string;
+  phone: string;
+  email: string;
+  isPrimary: boolean;
 }
 
 export interface Insight {
@@ -41,11 +42,10 @@ export interface Insight {
   timestamp: Date;
 }
 
-export interface Caregiver {
-  id: string;
-  name: string;
-  relationship: string;
-  phone: string;
-  email: string;
-  isPrimary: boolean;
+export interface HistoricalData {
+  date: string;
+  avgStress: number;
+  avgAnxiety: number;
+  avgCalm: number;
+  dominantState: EmotionalState;
 }
