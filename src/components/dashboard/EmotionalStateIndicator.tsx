@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { EmotionalState, EmotionalAnalysis } from '@/types/eeg';
-import { Heart, Brain, Smile, AlertTriangle, Sparkles } from 'lucide-react';
+import { Heart, Brain, Smile, AlertTriangle, Sparkles, Users, Shield, Moon } from 'lucide-react';
 
 interface EmotionalStateIndicatorProps {
   analysis: EmotionalAnalysis;
@@ -47,6 +47,27 @@ const stateConfig: Record<EmotionalState, {
     bgColor: 'bg-success/10',
     icon: Sparkles,
     description: 'Deep relaxation state',
+  },
+  lonely: {
+    label: 'Lonely',
+    color: 'text-calm',
+    bgColor: 'bg-calm/10',
+    icon: Users,
+    description: 'Feeling disconnected or isolated',
+  },
+  fear: {
+    label: 'Fear',
+    color: 'text-alert',
+    bgColor: 'bg-alert/10',
+    icon: Shield,
+    description: 'Heightened fear or panic detected',
+  },
+  fatigue: {
+    label: 'Fatigue',
+    color: 'text-muted-foreground',
+    bgColor: 'bg-muted/10',
+    icon: Moon,
+    description: 'Low energy patterns detected',
   },
 };
 

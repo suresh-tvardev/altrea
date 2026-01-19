@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { cn } from '@/lib/utils';
 import { 
   ArrowLeft, 
@@ -169,46 +169,32 @@ const AlertHistory = () => {
   const hasActiveFilters = dateFilter !== 'all' || severityFilter !== 'all' || statusFilter !== 'all';
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-50">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <Link to="/">
-                <Button variant="ghost" size="icon">
-                  <ArrowLeft className="w-5 h-5" />
-                </Button>
-              </Link>
-              <div>
-                <h1 className="text-xl font-bold text-foreground">Alert History</h1>
-                <p className="text-xs text-muted-foreground">View and export past alerts</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <PageHeader
+          title="Alert History"
+          description="View and export past alerts"
+          icon={FileText}
+          backTo="/"
+          actions={
+            <>
               <Button 
                 variant="outline" 
-                size="sm"
                 onClick={() => setShowFilters(!showFilters)}
                 className={cn(hasActiveFilters && "border-primary")}
               >
-                <Filter className="w-4 h-4" />
-                <span className="hidden sm:inline">Filters</span>
+                <Filter className="w-4 h-4 mr-2" />
+                Filters
                 {hasActiveFilters && (
-                  <span className="w-2 h-2 rounded-full bg-primary" />
+                  <span className="ml-2 w-2 h-2 rounded-full bg-primary" />
                 )}
               </Button>
-              <Button onClick={exportReport} size="sm">
-                <Download className="w-4 h-4" />
-                <span className="hidden sm:inline">Export Report</span>
+              <Button onClick={exportReport}>
+                <Download className="w-4 h-4 mr-2" />
+                Export Report
               </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            </>
+          }
+        />
         {/* Filters Panel */}
         {showFilters && (
           <div className="bg-card rounded-2xl p-5 shadow-sm border border-border mb-6 animate-slide-up">
@@ -371,7 +357,6 @@ const AlertHistory = () => {
             )}
           </div>
         </div>
-      </main>
     </div>
   );
 };

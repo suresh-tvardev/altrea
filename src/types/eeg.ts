@@ -1,4 +1,5 @@
-export type EmotionalState = 'calm' | 'neutral' | 'stressed' | 'anxious' | 'relaxed';
+export type EmotionalState = 'calm' | 'neutral' | 'stressed' | 'anxious' | 'relaxed' | 'lonely' | 'fear' | 'fatigue';
+export type InterventionType = 'mood-boost' | 'social-nudge' | 'breathing-guidance' | 'grounding-support' | 'rest-prompt';
 
 export interface EEGReading {
   timestamp: Date;
@@ -48,4 +49,38 @@ export interface HistoricalData {
   avgAnxiety: number;
   avgCalm: number;
   dominantState: EmotionalState;
+}
+
+export interface RecommendedActivity {
+  id: string;
+  title: string;
+  description: string;
+  duration: number; // in minutes
+  icon: string;
+  category: 'social' | 'wellness' | 'memory' | 'activity';
+}
+
+export interface MusicRecommendation {
+  id: string;
+  title: string;
+  artist: string;
+  emotionalTag: 'Uplifting' | 'Comforting' | 'Joyful' | 'Hopeful' | 'Calming';
+  tagColor: string;
+}
+
+export interface Intervention {
+  type: InterventionType;
+  title: string;
+  description: string;
+  activities?: RecommendedActivity[];
+  music?: MusicRecommendation[];
+  breathingExercise?: {
+    title: string;
+    duration: number;
+    steps: string[];
+  };
+  groundingContent?: {
+    title: string;
+    message: string;
+  };
 }

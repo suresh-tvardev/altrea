@@ -27,6 +27,9 @@ const analyzeEmotionalState = (readings: EEGReading[]): EmotionalAnalysis => {
   let anxietyLevel = 20 + Math.random() * 15;
   let calmLevel = 50 + Math.random() * 20;
 
+  // Enhanced state detection with new emotional states
+  const random = Math.random();
+  
   if (alphaRatio > 0.6) {
     state = 'relaxed';
     calmLevel = 70 + Math.random() * 20;
@@ -35,10 +38,44 @@ const analyzeEmotionalState = (readings: EEGReading[]): EmotionalAnalysis => {
     state = 'calm';
     calmLevel = 60 + Math.random() * 25;
   } else if (latest.beta > 25) {
-    state = Math.random() > 0.5 ? 'stressed' : 'anxious';
-    stressLevel = 60 + Math.random() * 30;
-    anxietyLevel = 50 + Math.random() * 35;
-    calmLevel = 20 + Math.random() * 20;
+    // High beta can indicate stress, anxiety, or fear
+    if (random > 0.85) {
+      state = 'fear';
+      stressLevel = 80 + Math.random() * 15;
+      anxietyLevel = 75 + Math.random() * 20;
+      calmLevel = 10 + Math.random() * 10;
+    } else if (random > 0.5) {
+      state = 'stressed';
+      stressLevel = 60 + Math.random() * 30;
+      anxietyLevel = 40 + Math.random() * 25;
+      calmLevel = 20 + Math.random() * 20;
+    } else {
+      state = 'anxious';
+      stressLevel = 50 + Math.random() * 25;
+      anxietyLevel = 60 + Math.random() * 30;
+      calmLevel = 25 + Math.random() * 15;
+    }
+  } else if (latest.delta > 3 && latest.theta > 5) {
+    // High delta/theta can indicate fatigue
+    if (random > 0.7) {
+      state = 'fatigue';
+      calmLevel = 40 + Math.random() * 20;
+      stressLevel = 30 + Math.random() * 20;
+      anxietyLevel = 20 + Math.random() * 15;
+    } else {
+      state = 'calm';
+      calmLevel = 60 + Math.random() * 25;
+    }
+  } else if (calmLevel < 40 && stressLevel < 30 && anxietyLevel < 25) {
+    // Low activity across all metrics might indicate loneliness
+    if (random > 0.8) {
+      state = 'lonely';
+      calmLevel = 35 + Math.random() * 15;
+      stressLevel = 25 + Math.random() * 15;
+      anxietyLevel = 20 + Math.random() * 15;
+    } else {
+      state = 'neutral';
+    }
   }
 
   return {
@@ -109,6 +146,10 @@ export const useEEGSimulation = () => {
   
   // Track last alert times to prevent duplicates
   const lastAlertTimes = useRef<{ [key: string]: Date }>({});
+  
+  // Track previous state for intervention triggers
+  const previousState = useRef<EmotionalState>('neutral');
+  const [shouldShowIntervention, setShouldShowIntervention] = useState(false);
 
   const addAlert = useCallback((alert: Alert) => {
     setAlerts(prev => {
@@ -127,9 +168,6 @@ export const useEEGSimulation = () => {
       history.push({
         ...alert,
         timestamp: alert.timestamp.toISOString(),
-        sentTo: Object.fromEntries(
-          Object.entries(alert.sentTo || {}).map(([k, v]) => [k, v.toISOString()])
-        ),
       });
       storageService.saveAlertHistory(history);
       
@@ -137,7 +175,8 @@ export const useEEGSimulation = () => {
     });
 
     // Show toast notification
-    const recipientNames = alertService.getRecipientNames(alert.recipients || []);
+    const recipients = alertService.getRecipients(alert.type);
+    const recipientNames = recipients.map(r => r.name);
     if (recipientNames.length > 0) {
       toast({
         title: `${alert.type.charAt(0).toUpperCase() + alert.type.slice(1)} Alert Sent`,
@@ -162,6 +201,20 @@ export const useEEGSimulation = () => {
 
       const newAnalysis = analyzeEmotionalState([...readings.slice(-59), newReading]);
       setAnalysis(newAnalysis);
+
+      // Check if state changed to trigger intervention popup
+      const interventionStates: EmotionalState[] = ['stressed', 'anxious', 'fear', 'lonely', 'fatigue'];
+      const stateChanged = previousState.current !== newAnalysis.state;
+      const shouldTriggerIntervention = 
+        stateChanged && 
+        interventionStates.includes(newAnalysis.state) &&
+        (newAnalysis.stressLevel > 60 || newAnalysis.anxietyLevel > 60 || newAnalysis.state === 'fear');
+      
+      if (shouldTriggerIntervention) {
+        setShouldShowIntervention(true);
+      }
+      
+      previousState.current = newAnalysis.state;
 
       // Check thresholds using alert service
       const alertCheck = alertService.checkThresholds(newAnalysis);
@@ -191,5 +244,7 @@ export const useEEGSimulation = () => {
     setIsConnected,
     acknowledgeAlert,
     addAlert,
+    shouldShowIntervention,
+    setShouldShowIntervention,
   };
 };
