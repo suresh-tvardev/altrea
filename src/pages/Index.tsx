@@ -9,6 +9,7 @@ import { QuickStats } from '@/components/dashboard/QuickStats';
 import { useEEGSimulation } from '@/hooks/useEEGSimulation';
 import { Toaster } from '@/components/ui/toaster';
 
+// Index page
 const Index = () => {
   const {
     readings,
