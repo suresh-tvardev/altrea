@@ -1,0 +1,117 @@
+import { cn } from '@/lib/utils';
+import type { EmotionalState, EmotionalAnalysis } from '@/types/eeg';
+import { Heart, Brain, Smile, AlertTriangle, Sparkles } from 'lucide-react';
+
+interface EmotionalStateIndicatorProps {
+  analysis: EmotionalAnalysis;
+}
+
+const stateConfig: Record<EmotionalState, { 
+  label: string; 
+  color: string; 
+  bgColor: string;
+  icon: React.ElementType;
+  description: string;
+}> = {
+  calm: {
+    label: 'Calm',
+    color: 'text-calm',
+    bgColor: 'bg-calm/10',
+    icon: Smile,
+    description: 'Relaxed and peaceful state',
+  },
+  neutral: {
+    label: 'Neutral',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
+    icon: Brain,
+    description: 'Balanced emotional state',
+  },
+  stressed: {
+    label: 'Stressed',
+    color: 'text-warning',
+    bgColor: 'bg-warning/10',
+    icon: AlertTriangle,
+    description: 'Elevated stress detected',
+  },
+  anxious: {
+    label: 'Anxious',
+    color: 'text-alert',
+    bgColor: 'bg-alert/10',
+    icon: Heart,
+    description: 'Anxiety patterns present',
+  },
+  relaxed: {
+    label: 'Relaxed',
+    color: 'text-success',
+    bgColor: 'bg-success/10',
+    icon: Sparkles,
+    description: 'Deep relaxation state',
+  },
+};
+
+export const EmotionalStateIndicator = ({ analysis }: EmotionalStateIndicatorProps) => {
+  const config = stateConfig[analysis.state];
+  const Icon = config.icon;
+
+  return (
+    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in">
+      <h3 className="text-lg font-semibold text-foreground mb-4">Current Emotional State</h3>
+      
+      <div className={cn(
+        "flex items-center gap-4 p-5 rounded-xl transition-all duration-500",
+        config.bgColor
+      )}>
+        <div className={cn(
+          "w-16 h-16 rounded-full flex items-center justify-center animate-pulse-gentle",
+          config.bgColor
+        )}>
+          <Icon className={cn("w-8 h-8", config.color)} />
+        </div>
+        
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <span className={cn("text-2xl font-bold", config.color)}>
+              {config.label}
+            </span>
+            <span className="text-sm text-muted-foreground">
+              ({Math.round(analysis.confidence * 100)}% confidence)
+            </span>
+          </div>
+          <p className="text-muted-foreground mt-1">{config.description}</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-4 mt-6">
+        <MetricBar 
+          label="Calm" 
+          value={analysis.calmLevel} 
+          color="bg-success" 
+        />
+        <MetricBar 
+          label="Stress" 
+          value={analysis.stressLevel} 
+          color="bg-warning" 
+        />
+        <MetricBar 
+          label="Anxiety" 
+          value={analysis.anxietyLevel} 
+          color="bg-alert" 
+        />
+      </div>
+    </div>
+  );
+};
+
+const MetricBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
+  <div className="text-center">
+    <div className="text-sm font-medium text-muted-foreground mb-2">{label}</div>
+    <div className="h-2 bg-muted rounded-full overflow-hidden">
+      <div 
+        className={cn("h-full rounded-full transition-all duration-700", color)}
+        style={{ width: `${value}%` }}
+      />
+    </div>
+    <div className="text-lg font-semibold text-foreground mt-1">{Math.round(value)}%</div>
+  </div>
+);
