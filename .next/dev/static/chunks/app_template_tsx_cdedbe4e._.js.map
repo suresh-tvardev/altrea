@@ -1,6 +1,0 @@
-{
-  "version": 3,
-  "sources": [],
-  "sections": [
-    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///Users/gsuresh86/Projects/tvar-launchpad/altrea/app/template.tsx"],"sourcesContent":["\"use client\";\n\nimport { useState } from 'react';\nimport { Header } from '@/components/dashboard/Header';\n\nexport default function Template({ children }: { children: React.ReactNode }) {\n    const [isConnected, setIsConnected] = useState(true);\n\n    return (\n        <div className=\"min-h-screen bg-background\">\n            <Header\n                isConnected={isConnected}\n                onToggleConnection={() => setIsConnected(!isConnected)}\n            />\n            {children}\n        </div>\n    );\n}\n"],"names":[],"mappings":";;;;;AAEA;;;;;;;;AAFA;;;AAKe,SAAS,SAAS,EAAE,QAAQ,EAAiC;;IACxE,MAAM,CAAC,aAAa,eAAe,GAAG,IAAA,yKAAQ,EAAC;IAE/C,qBACI,6LAAC;QAAI,WAAU;;0BACX,6LAAC;gBACG,aAAa;gBACb,oBAAoB,IAAM,eAAe,CAAC;;;;;;YAE7C;;;;;;;AAGb;GAZwB;KAAA"}}]
-}
