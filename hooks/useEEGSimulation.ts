@@ -290,8 +290,8 @@ export const useEEGSimulation = () => {
         console.log('WebSocket connected successfully to:', wsUrl);
         reconnectAttemptsRef.current = 0;
         toast({
-          title: 'WebSocket Connected',
-          description: 'Successfully connected to WebSocket server.',
+          title: 'Connected to Device',
+          description: 'Device connected successfully.',
           variant: 'default',
         });
       };
@@ -315,8 +315,8 @@ export const useEEGSimulation = () => {
         console.error('WebSocket readyState:', ws.readyState);
         setIsUsingWebSocket(false);
         toast({
-          title: 'WebSocket Connection Error',
-          description: `Failed to connect to ${wsUrl}. Make sure the WebSocket server is running.`,
+          title: 'Device Connection Error',
+          description: 'Failed to connect to device. Please check your connection settings.',
           variant: 'destructive',
         });
       };
@@ -337,8 +337,8 @@ export const useEEGSimulation = () => {
             }, delay);
           } else {
             toast({
-              title: 'WebSocket Connection Failed',
-              description: 'Could not reconnect to WebSocket. Falling back to mock data.',
+              title: 'Device Connection Failed',
+              description: 'Could not reconnect to device. Using simulated data.',
               variant: 'destructive',
             });
             setIsUsingWebSocket(false);
@@ -349,8 +349,8 @@ export const useEEGSimulation = () => {
       console.error('Error creating WebSocket:', error);
       setIsUsingWebSocket(false);
       toast({
-        title: 'WebSocket Error',
-        description: 'Failed to connect to WebSocket. Using mock data.',
+        title: 'Device Connection Error',
+        description: 'Failed to connect to device. Using simulated data.',
         variant: 'destructive',
       });
     }

@@ -35,10 +35,19 @@ FEATURES_LIST_ML = ['cogload', 'cogspeed', 'eevee_og']
 
 clients = set()
 
-async def handle_client(ws, path):
-    """Handle new WebSocket client connection."""
+async def handle_client(ws, path=None):
+    """Handle new WebSocket client connection.
+    
+    Compatible with both old websockets versions (that pass path) and new versions (that don't).
+    The path parameter is optional for compatibility across websockets library versions.
+    """
     # Add client to set of clients
-    client_addr = f"{ws.remote_address[0]}:{ws.remote_address[1]}"
+    try:
+        client_addr = f"{ws.remote_address[0]}:{ws.remote_address[1]}"
+    except AttributeError:
+        # Fallback for different websockets versions
+        client_addr = "unknown"
+    
     clients.add(ws)
     print(f"✅ Client connected from {client_addr}. Total clients: {len(clients)}")
 

@@ -72,7 +72,7 @@ const Configuration = () => {
       storageService.saveWebSocketUrl(websocketUrl);
       toast({
         title: 'Configuration Saved',
-        description: 'WebSocket URL has been saved. Restart the connection to apply changes.',
+        description: 'Device connection settings have been saved. Restart the connection to apply changes.',
       });
       setConnectionStatus('disconnected');
     } catch (error) {
@@ -92,7 +92,7 @@ const Configuration = () => {
     setTestMessage('');
     toast({
       title: 'Configuration Cleared',
-      description: 'WebSocket URL has been cleared. Mock data will be used.',
+      description: 'Device connection settings have been cleared. Simulated data will be used.',
     });
   };
 
@@ -107,7 +107,7 @@ const Configuration = () => {
     }
 
     setTestResult('testing');
-    setTestMessage('Connecting to WebSocket server...');
+    setTestMessage('Connecting to device...');
 
     try {
       const ws = new WebSocket(websocketUrl);
@@ -118,7 +118,7 @@ const Configuration = () => {
         setTestMessage('Connection timeout. Server did not respond.');
         toast({
           title: 'Connection Failed',
-          description: 'Could not connect to WebSocket server within timeout period.',
+          description: 'Could not connect to device within timeout period.',
           variant: 'destructive',
         });
       }, 5000);
@@ -126,11 +126,11 @@ const Configuration = () => {
       ws.onopen = () => {
         clearTimeout(timeout);
         setTestResult('success');
-        setTestMessage('Successfully connected to WebSocket server!');
+        setTestMessage('Successfully connected to device!');
         setConnectionStatus('connected');
         toast({
           title: 'Connection Successful',
-          description: 'WebSocket connection established successfully.',
+          description: 'Device connected successfully.',
         });
         ws.close();
       };
@@ -142,7 +142,7 @@ const Configuration = () => {
         setConnectionStatus('error');
         toast({
           title: 'Connection Error',
-          description: 'Could not establish WebSocket connection.',
+          description: 'Could not establish connection to device.',
           variant: 'destructive',
         });
       };
