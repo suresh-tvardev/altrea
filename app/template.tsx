@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from 'react';
 import { Header } from '@/components/dashboard/Header';
+import { useEEGSimulation } from '@/hooks/useEEGSimulation';
 
 export default function Template({ children }: { children: React.ReactNode }) {
-    const [isConnected, setIsConnected] = useState(true);
+    const { isConnected, setIsConnected } = useEEGSimulation();
 
     return (
         <div className="min-h-screen bg-background">

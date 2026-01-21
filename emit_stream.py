@@ -4,6 +4,7 @@ import json
 import websockets
 import numpy as np
 import pandas as pd
+import os
 from datetime import datetime
 
 CHANNELS_LIST = ['Left', 'Right']
@@ -93,8 +94,25 @@ async def broadcast_queue(queue):
                 clients.discard(client)
 
 
-def generate_synthetic_featurized_data():
-    """Generate synthetic featurized data with the same structure as pipeline output."""
+def check_demo_mode():
+    """Check if demo mode is enabled by reading from a JSON file."""
+    demo_mode_file = os.path.join(os.path.dirname(__file__), 'demo_mode.json')
+    try:
+        if os.path.exists(demo_mode_file):
+            with open(demo_mode_file, 'r') as f:
+                data = json.load(f)
+                return data.get('enabled', False)
+    except Exception as e:
+        print(f"⚠️  Error reading demo mode file: {e}")
+    return False
+
+
+def generate_synthetic_featurized_data(demo_mode=False):
+    """Generate synthetic featurized data with the same structure as pipeline output.
+    
+    Args:
+        demo_mode: If True, generate high-stress data for demonstrations.
+    """
     
     # Create multi-index columns: (Channel, Feature)
     channels = ['eeg1', 'eeg2', 'eeg3', 'eeg4', 'eeg5', 'eeg6', 'eeg7', 'eeg8', 
@@ -108,7 +126,22 @@ def generate_synthetic_featurized_data():
             column_data[(channel, '')] = np.random.uniform(0, 1, 1)[0]
         elif channel in ['Left', 'Right']:
             for feature in FEATURES_LIST_ORIG:
-                column_data[(channel, feature)] = np.random.uniform(0, 1, 1)[0]
+                if demo_mode:
+                    # High-stress mode: high beta (stress), low alpha (relaxation)
+                    if feature == 'beta':
+                        # High beta (0.7-1.0) for stress
+                        column_data[(channel, feature)] = np.random.uniform(0.7, 1.0, 1)[0]
+                    elif feature == 'alpha':
+                        # Low alpha (0.1-0.3) for reduced relaxation
+                        column_data[(channel, feature)] = np.random.uniform(0.1, 0.3, 1)[0]
+                    elif feature == 'theta':
+                        # Low theta for alertness/stress
+                        column_data[(channel, feature)] = np.random.uniform(0.1, 0.3, 1)[0]
+                    else:
+                        column_data[(channel, feature)] = np.random.uniform(0, 1, 1)[0]
+                else:
+                    # Normal mode: random values
+                    column_data[(channel, feature)] = np.random.uniform(0, 1, 1)[0]
         else:
             # For other channels, just use some random features
             for feature in FEATURES_LIST_ORIG:
@@ -191,10 +224,23 @@ def format_for_app(df_feats_chosen_flat):
 
 async def producer(queue):
     """Produce data and broadcast to all clients."""
+    demo_mode_enabled = False
+    demo_mode_check_counter = 0
+    
     # Produce data and broadcast to all clients
     while True:
+        # Check demo mode every 10 iterations (every 10 seconds)
+        demo_mode_check_counter += 1
+        if demo_mode_check_counter >= 10:
+            demo_mode_enabled = check_demo_mode()
+            demo_mode_check_counter = 0
+            if demo_mode_enabled:
+                print("🔥 DEMO MODE ENABLED: Generating high-stress data")
+            else:
+                print("✅ Normal mode: Generating standard data")
+        
         # Generate synthetic featurized data
-        df_features = generate_synthetic_featurized_data()
+        df_features = generate_synthetic_featurized_data(demo_mode=demo_mode_enabled)
         
         # Select channels and features
         idx = pd.IndexSlice
@@ -214,7 +260,8 @@ async def producer(queue):
         
         # Print message for debugging (only if clients are connected)
         if clients:
-            print(f"📤 Sending data to {len(clients)} client(s): alpha={app_data['alpha']:.2f}Hz, beta={app_data['beta']:.2f}Hz")
+            mode_indicator = "🔥" if demo_mode_enabled else "📤"
+            print(f"{mode_indicator} Sending data to {len(clients)} client(s): alpha={app_data['alpha']:.2f}Hz, beta={app_data['beta']:.2f}Hz")
 
         # Put message in queue
         await queue.put(msg)

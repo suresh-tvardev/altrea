@@ -1,5 +1,7 @@
 export type EmotionalState = 'calm' | 'neutral' | 'stressed' | 'anxious' | 'relaxed' | 'lonely' | 'fear' | 'fatigue';
 export type InterventionType = 'mood-boost' | 'social-nudge' | 'breathing-guidance' | 'grounding-support' | 'rest-prompt';
+export type UserRole = 'caregiver' | 'elder';
+export type MoodSelection = 'good' | 'bad' | 'happy' | 'calm' | 'stressed' | 'lonely' | 'sad' | null;
 
 export interface EEGReading {
   timestamp: Date;

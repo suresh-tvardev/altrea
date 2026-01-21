@@ -1,10 +1,14 @@
-import type { Caregiver, AlertThresholds } from '@/types/eeg';
+import type { Caregiver, AlertThresholds, UserRole, MoodSelection } from '@/types/eeg';
 
 const STORAGE_KEYS = {
   CAREGIVERS: 'altrea_caregivers',
   ALERT_THRESHOLDS: 'altrea_alert_thresholds',
   ALERT_HISTORY: 'altrea_alert_history',
   WEBSOCKET_URL: 'altrea_websocket_url',
+  USER_ROLE: 'altrea_user_role',
+  ELDER_MOOD_SELECTION: 'altrea_elder_mood_selection',
+  ELDER_MOOD_DATE: 'altrea_elder_mood_date',
+  DEMO_MODE: 'altrea_demo_mode',
 } as const;
 
 const DEFAULT_THRESHOLDS: AlertThresholds = {
@@ -161,6 +165,93 @@ export const storageService = {
       }
     } catch (error) {
       console.error('Error saving WebSocket URL to storage:', error);
+      throw error;
+    }
+  },
+
+  // Get user role
+  getUserRole(): UserRole {
+    try {
+      if (typeof window === 'undefined') return 'caregiver';
+      const stored = localStorage.getItem(STORAGE_KEYS.USER_ROLE);
+      return (stored as UserRole) || 'caregiver';
+    } catch (error) {
+      console.error('Error reading user role from storage:', error);
+      return 'caregiver';
+    }
+  },
+
+  // Save user role
+  saveUserRole(role: UserRole): void {
+    try {
+      if (typeof window === 'undefined') return;
+      localStorage.setItem(STORAGE_KEYS.USER_ROLE, role);
+    } catch (error) {
+      console.error('Error saving user role to storage:', error);
+      throw error;
+    }
+  },
+
+  // Get elder mood selection (for today)
+  getElderMoodSelection(): MoodSelection {
+    try {
+      if (typeof window === 'undefined') return null;
+      const today = new Date().toDateString();
+      const storedDate = localStorage.getItem(STORAGE_KEYS.ELDER_MOOD_DATE);
+      
+      // If mood was selected today, return it; otherwise return null
+      if (storedDate === today) {
+        const stored = localStorage.getItem(STORAGE_KEYS.ELDER_MOOD_SELECTION);
+        return (stored as MoodSelection) || null;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error reading elder mood selection from storage:', error);
+      return null;
+    }
+  },
+
+  // Save elder mood selection
+  saveElderMoodSelection(mood: MoodSelection): void {
+    try {
+      if (typeof window === 'undefined') return;
+      const today = new Date().toDateString();
+      localStorage.setItem(STORAGE_KEYS.ELDER_MOOD_SELECTION, mood || '');
+      localStorage.setItem(STORAGE_KEYS.ELDER_MOOD_DATE, today);
+    } catch (error) {
+      console.error('Error saving elder mood selection to storage:', error);
+      throw error;
+    }
+  },
+
+  // Get demo mode status
+  getDemoMode(): boolean {
+    try {
+      if (typeof window === 'undefined') return false;
+      const stored = localStorage.getItem(STORAGE_KEYS.DEMO_MODE);
+      return stored === 'true';
+    } catch (error) {
+      console.error('Error reading demo mode from storage:', error);
+      return false;
+    }
+  },
+
+  // Save demo mode status
+  saveDemoMode(enabled: boolean): void {
+    try {
+      if (typeof window === 'undefined') return;
+      localStorage.setItem(STORAGE_KEYS.DEMO_MODE, enabled ? 'true' : 'false');
+      
+      // Also write to a JSON file that Python server can read
+      // Since we can't write files directly from browser, we'll use a simple approach:
+      // Create a script that watches localStorage or use an API endpoint
+      // For now, we'll create the file via a Node.js helper script or API
+      // This is a placeholder - will be implemented with backend API
+      if (typeof window !== 'undefined' && (window as any).writeDemoModeFile) {
+        (window as any).writeDemoModeFile(enabled);
+      }
+    } catch (error) {
+      console.error('Error saving demo mode to storage:', error);
       throw error;
     }
   },
