@@ -280,26 +280,45 @@ export const useEEGSimulation = () => {
     }
 
     try {
+      console.log('Attempting to connect to WebSocket:', wsUrl);
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
       setIsUsingWebSocket(true);
       reconnectAttemptsRef.current = 0;
 
       ws.onopen = () => {
-        console.log('WebSocket connected');
+        console.log('WebSocket connected successfully to:', wsUrl);
         reconnectAttemptsRef.current = 0;
+        toast({
+          title: 'WebSocket Connected',
+          description: 'Successfully connected to WebSocket server.',
+          variant: 'default',
+        });
       };
 
       ws.onmessage = (event) => {
-        const reading = parseWebSocketMessage(event.data);
-        if (reading) {
-          processReading(reading);
+        try {
+          const reading = parseWebSocketMessage(event.data);
+          if (reading) {
+            processReading(reading);
+          } else {
+            console.warn('Failed to parse WebSocket message:', event.data);
+          }
+        } catch (error) {
+          console.error('Error processing WebSocket message:', error, event.data);
         }
       };
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
+        console.error('WebSocket URL:', wsUrl);
+        console.error('WebSocket readyState:', ws.readyState);
         setIsUsingWebSocket(false);
+        toast({
+          title: 'WebSocket Connection Error',
+          description: `Failed to connect to ${wsUrl}. Make sure the WebSocket server is running.`,
+          variant: 'destructive',
+        });
       };
 
       ws.onclose = () => {

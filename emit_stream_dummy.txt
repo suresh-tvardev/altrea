@@ -1,0 +1,168 @@
+# WebSocket/Streaming imports
+import asyncio 
+import json
+import websockets
+import numpy as np
+import pandas as pd
+
+# TODO: Don't use wildcard imports in future
+from config import *
+
+idx = pd.IndexSlice
+
+CHANNELS_LIST = ['Left','Right']
+FEATURES_LIST_ORIG =  [
+        "total_power",
+        "delta",
+        "theta",
+        "alpha",
+        "beta",
+        "beta_low",
+        "beta_high",
+        "gamma",
+        "a_ta",
+        "b_tb",
+        "b_ab",
+        "mab_tmab",
+        "p_bad",
+    ]
+
+INCLUDE_TIME = True
+
+if INCLUDE_TIME:
+    CHANNELS_LIST += ['time']
+    FEATURES_LIST = FEATURES_LIST_ORIG + ['']    # Time is not a multiindex
+
+
+SMOOTHER_LIST = ['raw','raw_popnorm','smoothed']
+CHANNEL_LIST_ML = ['ml', 'eevee_og']
+FEATURES_LIST_ML = ['cogload','cogspeed', 'eevee_og']
+
+clients = set()
+
+async def handle_client(ws):
+
+    # Add client to set of clients
+    clients.add(ws)
+
+    # Handle client messages
+    try:
+        async for _ in ws:  # producer sends data but we ignore input
+            pass
+    finally:
+        clients.remove(ws)
+
+
+async def broadcast_queue(queue):
+
+    # Broadcast queue to all clients
+    while True:
+        msg = await queue.get()
+        if clients:
+            # Create list of disconnected clients
+            disconnected_clients = []
+            for c in list(clients):  # Create a copy to iterate safely
+
+                # Send message to client
+                try:
+                    await c.send(msg)
+
+                # If client is disconnected, add to list of disconnected clients
+                except (websockets.exceptions.ConnectionClosed, 
+                        websockets.exceptions.ConnectionClosedOK, 
+                        websockets.exceptions.ConnectionClosedError):
+                    disconnected_clients.append(c)
+                
+                # If error occurs, add to list of disconnected clients
+                except Exception as e:
+                    print(f"Error sending to client: {e}")
+                    disconnected_clients.append(c)
+            
+            # Remove disconnected clients
+            for client in disconnected_clients:
+                clients.discard(client)
+
+
+def generate_synthetic_featurized_data():
+    """Generate synthetic featurized data with the same structure as pipeline output."""
+    
+    # Create multi-index columns: (Channel, Feature)
+    channels = ['eeg1', 'eeg2', 'eeg3', 'eeg4', 'eeg5', 'eeg6', 'eeg7', 'eeg8', 
+                'eeg9', 'eeg10', 'eeg11', 'eeg12', 'meta', 'Left', 
+                'Right', 'psd_left', 'psd_right', 'psd_lr', 'time']
+    
+    # Build column tuples for each channel
+    column_data = {}
+    for channel in channels:
+        if channel == 'time':
+            column_data[(channel, '')] = np.random.uniform(0, 1, 1)[0]
+        elif channel in ['Left', 'Right']:
+            for feature in FEATURES_LIST_ORIG:
+                column_data[(channel, feature)] = np.random.uniform(0, 1, 1)[0]
+        else:
+            # For other channels, just use some random features
+            for feature in FEATURES_LIST_ORIG:
+                column_data[(channel, feature)] = np.random.uniform(0, 1, 1)[0]
+    
+    # Create DataFrame with MultiIndex columns
+    columns = pd.MultiIndex.from_tuples(column_data.keys(), names=['Channel', 'Feature'])
+    df_features = pd.DataFrame([column_data.values()], columns=columns)
+    
+    return df_features
+
+
+async def producer(queue):
+
+    # Produce data and broadcast to all clients
+    while True:
+        
+        # If streaming raw data, generate synthetic raw data and convert to JSON
+        msg = ""
+        
+        df_features = generate_synthetic_featurized_data()
+        df_feats_chosen = df_features.loc[:, idx[CHANNELS_LIST, FEATURES_LIST]]
+        
+        # Flatten multi-index columns
+        df_feats_chosen_flat = df_feats_chosen.copy()
+        df_feats_chosen_flat.columns = ['__'.join(col).strip('_') for col in df_feats_chosen.columns.values]
+        # Special case for time column
+        df_feats_chosen_flat = df_feats_chosen_flat.rename(columns={'time__': 'time'})
+
+        print("Synthetic featurized data:")
+        print(df_feats_chosen_flat)
+
+        # Broadcast last row as JSON
+        msg = json.dumps(df_feats_chosen_flat.iloc[-1].to_dict())
+        
+        # Print message
+        if msg != "":
+            print(msg)
+        else:
+            print("No data to send")
+
+        # Put message in queue
+        if msg != "":
+            await queue.put(msg)
+        else:
+            await queue.put("{}")  # Send empty JSON if no data
+
+        await asyncio.sleep(1)  # 1 Hz example
+
+
+async def main():
+
+    # Initialize queue
+    queue = asyncio.Queue()
+
+    # Start WebSocket server
+    server = websockets.serve(handle_client, "0.0.0.0", 8765)
+
+    
+    await asyncio.gather(
+        server,
+        broadcast_queue(queue),
+        producer(queue),
+    )
+
+if __name__ == "__main__":
+    asyncio.run(main())
