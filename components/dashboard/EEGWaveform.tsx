@@ -8,7 +8,7 @@ interface EEGWaveformProps {
 }
 
 export const EEGWaveform = ({ readings, isConnected }: EEGWaveformProps) => {
-  const chartData = useMemo(() => 
+  const chartData = useMemo(() =>
     readings.slice(-30).map((r, i) => ({
       time: i,
       alpha: r.alpha,
@@ -35,36 +35,36 @@ export const EEGWaveform = ({ readings, isConnected }: EEGWaveformProps) => {
           <LineChart data={chartData}>
             <XAxis dataKey="time" hide />
             <YAxis hide domain={['auto', 'auto']} />
-            <Tooltip 
-              contentStyle={{ 
-                backgroundColor: 'hsl(var(--card))', 
+            <Tooltip
+              contentStyle={{
+                backgroundColor: 'hsl(var(--card))',
                 border: '1px solid hsl(var(--border))',
                 borderRadius: '8px',
                 fontSize: '14px',
               }}
               labelStyle={{ display: 'none' }}
             />
-            <Line 
-              type="monotone" 
-              dataKey="alpha" 
-              stroke="hsl(var(--chart-calm))" 
-              strokeWidth={2} 
+            <Line
+              type="monotone"
+              dataKey="alpha"
+              stroke="hsl(var(--chart-calm))"
+              strokeWidth={2}
               dot={false}
               name="Alpha"
             />
-            <Line 
-              type="monotone" 
-              dataKey="beta" 
-              stroke="hsl(var(--chart-stress))" 
-              strokeWidth={2} 
+            <Line
+              type="monotone"
+              dataKey="beta"
+              stroke="hsl(var(--chart-stress))"
+              strokeWidth={2}
               dot={false}
               name="Beta"
             />
-            <Line 
-              type="monotone" 
-              dataKey="theta" 
-              stroke="hsl(var(--chart-neutral))" 
-              strokeWidth={2} 
+            <Line
+              type="monotone"
+              dataKey="theta"
+              stroke="hsl(var(--chart-neutral))"
+              strokeWidth={2}
               dot={false}
               name="Theta"
             />
@@ -72,7 +72,7 @@ export const EEGWaveform = ({ readings, isConnected }: EEGWaveformProps) => {
         </ResponsiveContainer>
       </div>
 
-      <div className="flex justify-center gap-6 mt-4">
+      <div className="flex flex-wrap justify-center gap-4 sm:gap-6 mt-4">
         <Legend color="bg-chart-calm" label="Alpha (8-13 Hz)" />
         <Legend color="bg-chart-stress" label="Beta (13-30 Hz)" />
         <Legend color="bg-chart-neutral" label="Theta (4-8 Hz)" />

@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Activity, Settings, User, Wifi, WifiOff } from 'lucide-react';
-import { RoleSwitcher } from './RoleSwitcher';
 import { useRole } from '@/contexts/RoleContext';
 
 interface HeaderProps {
@@ -29,8 +28,7 @@ export const Header = ({ isConnected, onToggleConnection }: HeaderProps) => {
           </div>
 
           <div className="flex items-center gap-3">
-            <RoleSwitcher />
-            
+
             {!isElder && (
               <>
                 <Button

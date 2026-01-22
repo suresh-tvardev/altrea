@@ -2,29 +2,41 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import type { UserRole } from '@/types/eeg';
-import { storageService } from '@/services/storage';
+import { fetchUserRole } from '@/app/actions/user';
+import { updateProfileRole } from '@/app/actions/profile';
 
 interface RoleContextType {
-  role: UserRole;
+  role: UserRole | null;
   setRole: (role: UserRole) => void;
   isCaregiver: boolean;
   isElder: boolean;
+  loading: boolean;
 }
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
 export function RoleProvider({ children }: { children: ReactNode }) {
-  const [role, setRoleState] = useState<UserRole>('caregiver');
+  const [role, setRoleState] = useState<UserRole | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Load role from storage on mount
-    const storedRole = storageService.getUserRole();
-    setRoleState(storedRole);
+    // Load role from server on mount
+    const initRole = async () => {
+      try {
+        const fetchedRole = await fetchUserRole();
+        setRoleState(fetchedRole);
+      } catch (error) {
+        console.error("Failed to fetch user role", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    initRole();
   }, []);
 
-  const setRole = (newRole: UserRole) => {
+  const setRole = async (newRole: UserRole) => {
     setRoleState(newRole);
-    storageService.saveUserRole(newRole);
+    // Optimistically update, actual server update happens via actions in setup
   };
 
   const value: RoleContextType = {
@@ -32,6 +44,7 @@ export function RoleProvider({ children }: { children: ReactNode }) {
     setRole,
     isCaregiver: role === 'caregiver',
     isElder: role === 'elder',
+    loading
   };
 
   return <RoleContext.Provider value={value}>{children}</RoleContext.Provider>;

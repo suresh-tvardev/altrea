@@ -6,9 +6,23 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from '@/hooks/use-toast';
 import { storageService } from '@/services/storage';
 import { alertService } from '@/services/alertService';
+import {
+  getCareTeamMembers,
+  addCareTeamMember,
+  updateCareTeamMember,
+  deleteCareTeamMember
+} from '@/app/actions/settings';
 import type { Caregiver, AlertThresholds } from '@/types/eeg';
 import {
   Settings as SettingsIcon,
@@ -39,11 +53,12 @@ const Settings = () => {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [formData, setFormData] = useState<Partial<Caregiver>>({
+  const [formData, setFormData] = useState<Partial<Caregiver> & { role?: 'caregiver' | 'elder' }>({
     name: '',
     relationship: '',
     phone: '',
     email: '',
+    role: 'caregiver',
     isPrimary: false,
     alertPreferences: {
       critical: true,
@@ -61,14 +76,17 @@ const Settings = () => {
     }
   }, []);
 
-  const loadData = () => {
-    const loadedCaregivers = storageService.getCaregivers();
-    const loadedThresholds = storageService.getAlertThresholds();
+  const loadData = async () => {
+    // Load caregivers from Server Actions (DB)
+    const loadedCaregivers = await getCareTeamMembers();
     setCaregivers(loadedCaregivers);
+
+    // Load thresholds from Local Storage (for now)
+    const loadedThresholds = storageService.getAlertThresholds();
     setThresholds(loadedThresholds);
   };
 
-  const handleSaveCaregiver = () => {
+  const handleSaveCaregiver = async () => {
     if (!formData.name || !formData.email || !formData.phone) {
       toast({
         title: 'Validation Error',
@@ -80,21 +98,28 @@ const Settings = () => {
 
     try {
       if (editingId) {
-        storageService.updateCaregiver(editingId, formData);
+        // Update via Server Action
+        const result = await updateCareTeamMember(editingId, formData);
+        if (result.error) throw new Error(result.error);
+
         toast({
           title: 'Caregiver Updated',
           description: `${formData.name} has been updated successfully.`,
         });
       } else {
-        storageService.addCaregiver(formData as Omit<Caregiver, 'id'>);
+        // Add via Server Action
+        const result = await addCareTeamMember(formData as Omit<Caregiver, 'id'>);
+        if (result.error) throw new Error(result.error);
+
         toast({
           title: 'Caregiver Added',
           description: `${formData.name} has been added successfully.`,
         });
       }
-      loadData();
+      await loadData(); // Refresh list
       resetForm();
     } catch (error) {
+      console.error(error);
       toast({
         title: 'Error',
         description: 'Failed to save caregiver. Please try again.',
@@ -103,20 +128,30 @@ const Settings = () => {
     }
   };
 
-  const handleDeleteCaregiver = (id: string) => {
+  const handleDeleteCaregiver = async (id: string) => {
     const caregiver = caregivers.find(c => c.id === id);
     if (caregiver && window.confirm(`Are you sure you want to remove ${caregiver.name}?`)) {
-      storageService.deleteCaregiver(id);
-      toast({
-        title: 'Caregiver Removed',
-        description: `${caregiver.name} has been removed.`,
-      });
-      loadData();
+      try {
+        const result = await deleteCareTeamMember(id);
+        if (result.error) throw new Error(result.error);
+
+        toast({
+          title: 'Caregiver Removed',
+          description: `${caregiver.name} has been removed.`,
+        });
+        loadData();
+      } catch (error) {
+        toast({
+          title: 'Error',
+          description: 'Failed to remove caregiver.',
+          variant: 'destructive',
+        });
+      }
     }
   };
 
   const handleEditCaregiver = (caregiver: Caregiver) => {
-    setFormData(caregiver);
+    setFormData({ ...caregiver, role: (caregiver as any).role || 'caregiver' });
     setEditingId(caregiver.id);
     setIsAdding(false);
   };
@@ -127,6 +162,7 @@ const Settings = () => {
       relationship: '',
       phone: '',
       email: '',
+      role: 'caregiver',
       isPrimary: false,
       alertPreferences: {
         critical: true,
@@ -138,15 +174,23 @@ const Settings = () => {
     setIsAdding(false);
   };
 
-  const handleSetPrimary = (id: string) => {
+  const handleSetPrimary = async (id: string) => {
     // Remove primary from all, then set new primary
+    // Optimistic update
     const updated = caregivers.map(c => ({
       ...c,
       isPrimary: c.id === id,
     }));
-    updated.forEach(c => {
-      storageService.updateCaregiver(c.id, { isPrimary: c.isPrimary });
-    });
+    setCaregivers(updated);
+
+    // Update in DB
+    // Note: Ideally transactional on server, but looping here for now
+    // A better approach would be a 'setPrimaryMember' action.
+    for (const c of updated) {
+      if (c.id === id || c.isPrimary) { // Only update the relevant ones to save calls
+        await updateCareTeamMember(c.id, { isPrimary: c.isPrimary });
+      }
+    }
     loadData();
   };
 
@@ -205,10 +249,10 @@ const Settings = () => {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <User className="w-5 h-5" />
-              Caregivers & Alert Recipients
+              Care Team & Family
             </CardTitle>
             <CardDescription>
-              Manage people who will receive alerts when thresholds are exceeded.
+              Manage family members and caregivers associated with this account.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -225,6 +269,21 @@ const Settings = () => {
                         onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                         placeholder="John Doe"
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="role">Role</Label>
+                      <Select
+                        value={formData.role}
+                        onValueChange={(value: 'caregiver' | 'elder') => setFormData({ ...formData, role: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="caregiver">Caregiver / Family</SelectItem>
+                          <SelectItem value="elder">Elder / Patient</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="relationship">Relationship</Label>
@@ -327,7 +386,7 @@ const Settings = () => {
                   <div className="flex gap-2 pt-2">
                     <Button onClick={handleSaveCaregiver} className="flex-1">
                       <Save className="w-4 h-4" />
-                      {editingId ? 'Update' : 'Add'} Caregiver
+                      {editingId ? 'Update' : 'Add'} {formData.role === 'elder' ? 'Elder / Patient' : 'Caregiver'}
                     </Button>
                     <Button variant="outline" onClick={resetForm}>
                       <X className="w-4 h-4" />
@@ -342,7 +401,7 @@ const Settings = () => {
             {!isAdding && !editingId && (
               <Button onClick={() => setIsAdding(true)} className="w-full">
                 <Plus className="w-4 h-4" />
-                Add Caregiver
+                Add {caregivers.length === 0 ? 'First' : ''} Caregiver
               </Button>
             )}
 
@@ -351,8 +410,8 @@ const Settings = () => {
               {caregivers.length === 0 ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <User className="w-10 h-10 mx-auto mb-2 opacity-50" />
-                  <p>No caregivers configured</p>
-                  <p className="text-sm mt-1">Add caregivers to receive alerts</p>
+                  <p>No persons configured</p>
+                  <p className="text-sm mt-1">Add caregivers or family members to receive alerts</p>
                 </div>
               ) : (
                 caregivers.map((caregiver) => (
@@ -367,6 +426,9 @@ const Settings = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <span className="font-semibold">{caregiver.name}</span>
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {(caregiver as any).role || 'caregiver'}
+                          </Badge>
                           {caregiver.isPrimary && (
                             <Star className="w-4 h-4 text-warning fill-warning" />
                           )}

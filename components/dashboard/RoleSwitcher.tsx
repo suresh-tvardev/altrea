@@ -17,11 +17,13 @@ export const RoleSwitcher = () => {
   const router = useRouter();
   const pathname = usePathname();
 
+  if (!role) return null;
+
   const handleRoleChange = (newRole: 'caregiver' | 'elder') => {
     if (newRole === role) return;
-    
+
     setRole(newRole);
-    
+
     // Navigate to appropriate home page
     if (newRole === 'elder') {
       router.push('/elder');
@@ -45,7 +47,10 @@ export const RoleSwitcher = () => {
     },
   };
 
-  const currentConfig = roleConfig[role];
+  const currentConfig = roleConfig[role as keyof typeof roleConfig];
+
+  if (!currentConfig) return null;
+
   const CurrentIcon = currentConfig.icon;
 
   return (

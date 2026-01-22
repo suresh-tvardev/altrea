@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/ui/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useToast } from '@/hooks/use-toast';
 import {
   User,
   Smartphone,
@@ -13,13 +15,26 @@ import {
   HardDrive,
   Activity,
   Edit,
-  Save
+  Save,
+  LogOut
 } from 'lucide-react';
 import { useEEGSimulation } from '@/hooks/useEEGSimulation';
 import { cn } from '@/lib/utils';
+import { signOut } from '@/app/actions/auth';
+import { getFullProfile } from '@/app/actions/profile';
 
 const Profile = () => {
   const { isConnected, setIsConnected } = useEEGSimulation();
+  const router = useRouter();
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<{
+    email: string;
+    name: string;
+    role: string;
+    created_at: string;
+  } | null>(null);
+
   const [deviceInfo, setDeviceInfo] = useState({
     deviceName: 'Altrea EEG Monitor',
     deviceId: 'ALT-2024-001',
@@ -27,7 +42,7 @@ const Profile = () => {
     batteryLevel: 85,
     storageUsed: 45,
     storageTotal: 128,
-    lastSync: new Date(2024, 0, 1), // Use a fixed date for initial render
+    lastSync: new Date(2024, 0, 1),
     signalStrength: 95,
   });
   const [isEditing, setIsEditing] = useState(false);
@@ -36,6 +51,27 @@ const Profile = () => {
 
   useEffect(() => {
     setMounted(true);
+    const fetchProfile = async () => {
+      try {
+        const profileData = await getFullProfile();
+
+        if (profileData) {
+          setUserProfile({
+            email: profileData.email || '',
+            name: profileData.name || 'User',
+            role: profileData.role || 'User',
+            created_at: profileData.created_at ? new Date(profileData.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : '-',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching profile:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+
     setDeviceInfo(prev => ({
       ...prev,
       lastSync: new Date(),
@@ -55,7 +91,24 @@ const Profile = () => {
     return () => clearInterval(interval);
   }, [isConnected]);
 
-  if (!mounted) return null; // Prevent hydration flash/mismatch by not rendering dynamic content until mounted
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      router.push("/auth/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (!mounted) return null;
 
   const handleSave = () => {
     setDeviceInfo(prev => ({ ...prev, deviceName: editedName }));
@@ -101,24 +154,35 @@ const Profile = () => {
                 <User className="w-10 h-10 text-primary" />
               </div>
               <div className="flex-1">
-                <h3 className="text-lg font-semibold">User Profile</h3>
-                <p className="text-sm text-muted-foreground">EEG Monitoring User</p>
+                <h3 className="text-lg font-semibold">{userProfile?.name || 'Loading...'}</h3>
+                <p className="text-sm text-muted-foreground capitalize">{userProfile?.role || 'Loading...'}</p>
               </div>
             </div>
 
             <div className="space-y-3 pt-4 border-t">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Name</label>
-                <p className="text-foreground mt-1">John Doe</p>
+                <p className="text-foreground mt-1">{userProfile?.name || '-'}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Email</label>
-                <p className="text-foreground mt-1">john.doe@example.com</p>
+                <p className="text-foreground mt-1">{userProfile?.email || '-'}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Member Since</label>
-                <p className="text-foreground mt-1">January 2024</p>
+                <p className="text-foreground mt-1">{userProfile?.created_at || '-'}</p>
               </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={handleLogout}
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Log Out
+              </Button>
             </div>
           </CardContent>
         </Card>

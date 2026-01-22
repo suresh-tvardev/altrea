@@ -18,7 +18,7 @@ export const ElderDashboard = ({ selectedMood }: ElderDashboardProps) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Welcome Message */}
         <Card className="mb-6 border-2 border-pink-200 bg-white/80">
           <CardContent className="p-6">
@@ -43,19 +43,19 @@ export const ElderDashboard = ({ selectedMood }: ElderDashboardProps) => {
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Personal Stats */}
-            <ElderPersonalStats 
+            <ElderPersonalStats
               historicalData={readings}
               selectedMood={selectedMood}
             />
 
             {/* Simplified EEG View */}
-            <ElderEEGView 
+            <ElderEEGView
               readings={readings}
               isConnected={isConnected}
             />
 
             {/* Interventions */}
-            <ElderInterventions 
+            <ElderInterventions
               analysis={analysis}
               selectedMood={selectedMood}
             />

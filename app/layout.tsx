@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
+import { Navbar } from "@/components/home/Navbar";
 
 export const metadata: Metadata = {
     title: "Altrea - EEG Emotional Wellness Platform",
@@ -27,7 +28,10 @@ export default function RootLayout({
     return (
         <html lang="en" suppressHydrationWarning>
             <body>
-                <Providers>{children}</Providers>
+                <Providers>
+                    <Navbar />
+                    {children}
+                </Providers>
             </body>
         </html>
     );
