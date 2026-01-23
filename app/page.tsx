@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { fetchUserRole } from "@/app/actions/user";
 import { LandingPage } from "@/components/home/LandingPage";
 
+export const dynamic = "force-dynamic";
+
 export default async function Home() {
     // fetchUserRole already handles errors and returns null on failure
     const role = await fetchUserRole();
