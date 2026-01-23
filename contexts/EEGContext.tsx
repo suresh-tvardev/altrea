@@ -5,6 +5,7 @@ import type { EEGReading, EmotionalAnalysis, EmotionalState, Alert, HistoricalDa
 import { alertService } from '@/services/alertService';
 import { storageService } from '@/services/storage';
 import { useToast } from '@/hooks/use-toast';
+import { useRole } from '@/contexts/RoleContext';
 
 // Singleton WebSocket connection ref (shared across all instances)
 let globalWsRef: WebSocket | null = null;
@@ -141,6 +142,7 @@ const EEGContext = createContext<EEGContextType | undefined>(undefined);
 
 export function EEGProvider({ children }: { children: ReactNode }) {
   const { toast } = useToast();
+  const { role, loading: roleLoading } = useRole();
   const [readings, setReadings] = useState<EEGReading[]>([]);
   const [analysis, setAnalysis] = useState<EmotionalAnalysis>({
     state: 'neutral',
@@ -243,6 +245,11 @@ export function EEGProvider({ children }: { children: ReactNode }) {
   }, [addAlert]);
 
   const connectWebSocket = useCallback(() => {
+    // Don't connect if user is not authenticated (no role means not logged in or setup incomplete)
+    if (roleLoading || !role) {
+      return;
+    }
+    
     const wsUrl = storageService.getWebSocketUrl();
     if (!wsUrl || !isConnected || globalWsRef) {
       return; // Already connected or no URL
@@ -326,15 +333,29 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       setIsUsingWebSocket(false);
       globalIsUsingWebSocket = false;
     }
-  }, [isConnected, parseWebSocketMessage, processReading, toast]);
+  }, [isConnected, parseWebSocketMessage, processReading, toast, role, roleLoading]);
 
-  // Initialize WebSocket connection once on mount
+  // Initialize WebSocket connection (only after user is authenticated)
   useEffect(() => {
+    // Always set historical data and insights (these don't require auth)
+    if (!isInitializedRef.current) {
+      setHistoricalData(generateHistoricalData());
+      setInsights(generateInsights());
+    }
+
+    // Don't attempt connection if user is not authenticated
+    if (roleLoading || !role) {
+      setIsUsingWebSocket(false);
+      // Reset initialization flag when user logs out
+      if (!roleLoading && !role) {
+        isInitializedRef.current = false;
+      }
+      return;
+    }
+    
+    // Only initialize connection once per authenticated session
     if (isInitializedRef.current) return;
     isInitializedRef.current = true;
-
-    setHistoricalData(generateHistoricalData());
-    setInsights(generateInsights());
 
     const wsUrl = storageService.getWebSocketUrl();
     if (wsUrl && isConnected) {
@@ -354,12 +375,23 @@ export function EEGProvider({ children }: { children: ReactNode }) {
         globalReconnectTimeoutRef = null;
       }
       globalIsUsingWebSocket = false;
-      isInitializedRef.current = false;
+      // Don't reset isInitializedRef here - let it reset when role becomes null
     };
-  }, []); // Empty deps - only run once
+  }, [role, roleLoading, connectWebSocket, isConnected]); // Re-run when role changes
 
-  // Reconnect if connection state changes
+  // Reconnect if connection state changes (only if user is authenticated)
   useEffect(() => {
+    // Don't attempt connection if user is not authenticated
+    if (roleLoading || !role) {
+      if (globalWsRef) {
+        globalWsRef.close();
+        globalWsRef = null;
+        setIsUsingWebSocket(false);
+        globalIsUsingWebSocket = false;
+      }
+      return;
+    }
+    
     const wsUrl = storageService.getWebSocketUrl();
     if (wsUrl && isConnected && !globalWsRef) {
       connectWebSocket();
@@ -369,7 +401,7 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       setIsUsingWebSocket(false);
       globalIsUsingWebSocket = false;
     }
-  }, [isConnected, connectWebSocket]);
+  }, [isConnected, connectWebSocket, role, roleLoading]);
 
   // Mock data generation (fallback when not using WebSocket)
   useEffect(() => {

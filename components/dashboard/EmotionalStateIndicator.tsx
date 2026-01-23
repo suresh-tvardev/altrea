@@ -6,9 +6,9 @@ interface EmotionalStateIndicatorProps {
   analysis: EmotionalAnalysis;
 }
 
-const stateConfig: Record<EmotionalState, { 
-  label: string; 
-  color: string; 
+const stateConfig: Record<EmotionalState, {
+  label: string;
+  color: string;
   bgColor: string;
   icon: React.ElementType;
   description: string;
@@ -78,20 +78,20 @@ export const EmotionalStateIndicator = ({ analysis }: EmotionalStateIndicatorPro
   return (
     <div className="bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in">
       <h3 className="text-lg font-semibold text-foreground mb-4">Current Emotional State</h3>
-      
+
       <div className={cn(
-        "flex items-center gap-4 p-5 rounded-xl transition-all duration-500",
+        "flex flex-col sm:flex-row items-center sm:items-start gap-4 p-5 rounded-xl transition-all duration-500 text-center sm:text-left",
         config.bgColor
       )}>
         <div className={cn(
-          "w-16 h-16 rounded-full flex items-center justify-center animate-pulse-gentle",
+          "w-16 h-16 rounded-full flex items-center justify-center animate-pulse-gentle shrink-0",
           config.bgColor
         )}>
           <Icon className={cn("w-8 h-8", config.color)} />
         </div>
-        
+
         <div className="flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-center gap-2">
             <span className={cn("text-2xl font-bold", config.color)}>
               {config.label}
             </span>
@@ -104,20 +104,20 @@ export const EmotionalStateIndicator = ({ analysis }: EmotionalStateIndicatorPro
       </div>
 
       <div className="grid grid-cols-3 gap-4 mt-6">
-        <MetricBar 
-          label="Calm" 
-          value={analysis.calmLevel} 
-          color="bg-success" 
+        <MetricBar
+          label="Calm"
+          value={analysis.calmLevel}
+          color="bg-success"
         />
-        <MetricBar 
-          label="Stress" 
-          value={analysis.stressLevel} 
-          color="bg-warning" 
+        <MetricBar
+          label="Stress"
+          value={analysis.stressLevel}
+          color="bg-warning"
         />
-        <MetricBar 
-          label="Anxiety" 
-          value={analysis.anxietyLevel} 
-          color="bg-alert" 
+        <MetricBar
+          label="Anxiety"
+          value={analysis.anxietyLevel}
+          color="bg-alert"
         />
       </div>
     </div>
@@ -128,7 +128,7 @@ const MetricBar = ({ label, value, color }: { label: string; value: number; colo
   <div className="text-center">
     <div className="text-sm font-medium text-muted-foreground mb-2">{label}</div>
     <div className="h-2 bg-muted rounded-full overflow-hidden">
-      <div 
+      <div
         className={cn("h-full rounded-full transition-all duration-700", color)}
         style={{ width: `${value}%` }}
       />

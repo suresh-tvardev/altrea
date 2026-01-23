@@ -3,23 +3,31 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { Caregiver } from '@/types/eeg';
-import { Phone, Mail, User, Star, MessageCircle, Settings } from 'lucide-react';
+import { Phone, Mail, User, Star, MessageCircle, Settings, LogOut, Users } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { storageService } from '@/services/storage';
+import { getCareTeamMembers } from '@/app/actions/settings';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useRouter } from 'next/navigation';
+import { signOut } from '@/app/actions/auth';
 
 export const CaregiversPanel = () => {
   const { toast } = useToast();
   const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
+  const router = useRouter();
 
   useEffect(() => {
     loadCaregivers();
-    // Listen for storage changes (in case settings page updates)
-    const interval = setInterval(loadCaregivers, 2000);
-    return () => clearInterval(interval);
   }, []);
 
-  const loadCaregivers = () => {
-    const loaded = storageService.getCaregivers();
+  const loadCaregivers = async () => {
+    const loaded = await getCareTeamMembers();
     setCaregivers(loaded);
   };
 
@@ -40,6 +48,23 @@ export const CaregiversPanel = () => {
     });
   };
 
+  const handleLogout = async () => {
+    try {
+      await signOut();
+      toast({
+        title: "Logged out",
+        description: "You have been successfully logged out.",
+      });
+      router.push("/auth/login");
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to log out. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in">
       <div className="flex items-center justify-between mb-4">
@@ -47,11 +72,33 @@ export const CaregiversPanel = () => {
           <User className="w-5 h-5 text-primary" />
           <h3 className="text-lg font-semibold text-foreground">Caregivers & Family</h3>
         </div>
-        <Link href="/settings">
-          <Button variant="ghost" size="icon">
-            <Settings className="w-4 h-4" />
-          </Button>
-        </Link>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon">
+              <Settings className="w-4 h-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="cursor-pointer">
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Settings</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="cursor-pointer">
+                <Users className="mr-2 h-4 w-4" />
+                <span>Manage Team</span>
+              </Link>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="text-red-600 focus:text-red-600 cursor-pointer">
+              <LogOut className="mr-2 h-4 w-4" />
+              <span>Log out</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <Button
