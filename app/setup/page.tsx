@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { UserRound, HeartHandshake, ArrowRight, Loader2, Sparkles, Wifi, Eye, EyeOff } from "lucide-react";
 import { toast } from "sonner";
 import { completeSetup, completeSetupWithPartner, checkSetupStatus, type PartnerDetails } from "@/app/actions/setup";
+import { useRole } from "@/contexts/RoleContext";
 
 export default function SetupPage() {
     const [step, setStep] = useState<1 | 2 | 3>(1);
@@ -27,6 +28,7 @@ export default function SetupPage() {
     const [loading, setLoading] = useState(false);
     const [checkingSetup, setCheckingSetup] = useState(true);
     const router = useRouter();
+    const { refetchRole } = useRole();
 
     // Check if setup is already complete on mount
     useEffect(() => {
@@ -34,11 +36,12 @@ export default function SetupPage() {
             try {
                 const status = await checkSetupStatus();
                 if (status.isSetupComplete && status.role) {
-                    // User already has account, redirect to their dashboard
+                    await refetchRole();
+                    router.refresh();
                     if (status.role === 'elder') {
-                        router.push('/elder');
+                        router.replace('/elder');
                     } else if (status.role === 'caregiver') {
-                        router.push('/caregiver');
+                        router.replace('/caregiver');
                     }
                     return;
                 }
@@ -59,7 +62,7 @@ export default function SetupPage() {
         };
 
         checkExistingSetup();
-    }, [router]);
+    }, [router, refetchRole]);
 
     const handleRoleSelect = (selectedRole: "elder" | "caregiver") => {
         setRole(selectedRole);
@@ -136,11 +139,12 @@ export default function SetupPage() {
 
             toast.success(`Success! Connected to ${accountName}. Partner account created for ${partnerEmail}.`);
 
-            // Redirect based on role
+            await refetchRole();
+            router.refresh();
             if (role === 'elder') {
-                router.push('/elder');
+                router.replace('/elder');
             } else {
-                router.push('/caregiver');
+                router.replace('/caregiver');
             }
         } catch (error: any) {
             toast.error(error.message || "Failed to setup account");

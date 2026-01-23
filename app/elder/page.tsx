@@ -9,15 +9,17 @@ import { storageService } from '@/services/storage';
 import type { MoodSelection } from '@/types/eeg';
 
 export default function ElderPage() {
-  const { isElder } = useRole();
+  const { isElder, loading: roleLoading } = useRole();
   const router = useRouter();
   const [moodSelected, setMoodSelected] = useState<MoodSelection | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Redirect if not in elder role
+    // Wait for role to load before redirect logic – avoids redirect loop when role is null on mount
+    if (roleLoading) return;
+
     if (!isElder) {
-      router.push('/');
+      router.replace('/');
       return;
     }
 
@@ -25,14 +27,14 @@ export default function ElderPage() {
     const todayMood = storageService.getElderMoodSelection();
     setMoodSelected(todayMood);
     setIsLoading(false);
-  }, [isElder, router]);
+  }, [isElder, roleLoading, router]);
 
   const handleMoodSelected = (mood: MoodSelection) => {
     storageService.saveElderMoodSelection(mood);
     setMoodSelected(mood);
   };
 
-  if (isLoading) {
+  if (roleLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-muted-foreground">Loading...</div>

@@ -11,6 +11,7 @@ import { login, signup } from "@/app/actions/auth";
 import { checkSetupStatus } from "@/app/actions/setup";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { useRole } from "@/contexts/RoleContext";
 
 interface AuthFormProps {
     type: "login" | "signup";
@@ -21,6 +22,7 @@ export function AuthForm({ type }: AuthFormProps) {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+    const { refetchRole } = useRole();
 
     const handleAuth = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -42,21 +44,23 @@ export function AuthForm({ type }: AuthFormProps) {
 
                 if (result.error) throw new Error(result.error);
                 toast.success("Logged in successfully!");
-                
+
+                // Refetch role so Header/topbar shows icons immediately (avoids missing icons until hard refresh)
+                await refetchRole();
+                router.refresh();
+
                 // Check if setup is already complete
                 const setupStatus = await checkSetupStatus();
                 if (setupStatus.isSetupComplete && setupStatus.role) {
-                    // Redirect to appropriate dashboard
                     if (setupStatus.role === 'elder') {
-                        router.push('/elder');
+                        router.replace('/elder');
                     } else if (setupStatus.role === 'caregiver') {
-                        router.push('/caregiver');
+                        router.replace('/caregiver');
                     } else {
-                        router.push('/setup');
+                        router.replace('/setup');
                     }
                 } else {
-                    // Setup not complete, go to setup page
-                    router.push("/setup");
+                    router.replace("/setup");
                 }
             }
         } catch (error: any) {
