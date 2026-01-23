@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { BrainCircuit, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { login, signup } from "@/app/actions/auth";
+import { checkSetupStatus } from "@/app/actions/setup";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -41,7 +42,22 @@ export function AuthForm({ type }: AuthFormProps) {
 
                 if (result.error) throw new Error(result.error);
                 toast.success("Logged in successfully!");
-                router.push("/setup");
+                
+                // Check if setup is already complete
+                const setupStatus = await checkSetupStatus();
+                if (setupStatus.isSetupComplete && setupStatus.role) {
+                    // Redirect to appropriate dashboard
+                    if (setupStatus.role === 'elder') {
+                        router.push('/elder');
+                    } else if (setupStatus.role === 'caregiver') {
+                        router.push('/caregiver');
+                    } else {
+                        router.push('/setup');
+                    }
+                } else {
+                    // Setup not complete, go to setup page
+                    router.push("/setup");
+                }
             }
         } catch (error: any) {
             toast.error(error.message || "Something went wrong");
