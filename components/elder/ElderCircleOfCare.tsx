@@ -95,11 +95,17 @@ export const ElderCircleOfCare = () => {
                     <div className="text-sm text-muted-foreground">
                       {primaryCaregiver.relationship}
                     </div>
+                    {primaryCaregiver.phone && (
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {primaryCaregiver.phone}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <Button
                   onClick={() => handleCall(primaryCaregiver.phone, primaryCaregiver.name)}
                   className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                  disabled={!primaryCaregiver.phone}
                 >
                   <Phone className="w-5 h-5 mr-2" />
                   Call Now
@@ -129,12 +135,18 @@ export const ElderCircleOfCare = () => {
                         <div className="text-sm text-muted-foreground">
                           {caregiver.relationship}
                         </div>
+                        {caregiver.phone && (
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {caregiver.phone}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button
                       onClick={() => handleCall(caregiver.phone, caregiver.name)}
                       variant="outline"
                       className="w-full h-10"
+                      disabled={!caregiver.phone}
                     >
                       <Phone className="w-4 h-4 mr-2" />
                       Call
@@ -166,12 +178,18 @@ export const ElderCircleOfCare = () => {
                         <div className="text-sm text-muted-foreground">
                           {caregiver.relationship}
                         </div>
+                        {caregiver.phone && (
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {caregiver.phone}
+                          </div>
+                        )}
                       </div>
                     </div>
                     <Button
                       onClick={() => handleCall(caregiver.phone, caregiver.name)}
                       variant="outline"
                       className="w-full h-10"
+                      disabled={!caregiver.phone}
                     >
                       <Phone className="w-4 h-4 mr-2" />
                       Call
