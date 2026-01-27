@@ -41,6 +41,12 @@ export function LandingPage() {
                                 Sign In
                             </Button>
                         </Link>
+                        <Link href="/demo">
+                            <Button size="lg" variant="secondary" className="text-lg px-8">
+                                View Demo
+                                <ArrowRight className="ml-2 w-5 h-5" />
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </section>

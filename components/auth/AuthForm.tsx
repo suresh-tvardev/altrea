@@ -38,7 +38,14 @@ export function AuthForm({ type }: AuthFormProps) {
                 const result = await signup(formData);
 
                 if (result.error) throw new Error(result.error);
-                toast.success("Check your email to confirm your account!");
+                toast.success("Account created successfully!");
+
+                // Refetch role so Header/topbar shows icons immediately
+                await refetchRole();
+                router.refresh();
+
+                // Redirect to setup after signup
+                router.replace("/setup");
             } else {
                 const result = await login(formData);
 
