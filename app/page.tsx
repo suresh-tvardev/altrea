@@ -1,10 +1,16 @@
 import { redirect } from "next/navigation";
-import { fetchUserRole } from "@/app/actions/user";
+import { fetchUserRole, isAuthenticatedButMissingProfile } from "@/app/actions/user";
 import { LandingPage } from "@/components/home/LandingPage";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
+    // Check if user is authenticated but missing profile
+    const needsSetup = await isAuthenticatedButMissingProfile();
+    if (needsSetup) {
+        redirect("/setup");
+    }
+
     // fetchUserRole already handles errors and returns null on failure
     const role = await fetchUserRole();
 

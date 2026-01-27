@@ -26,3 +26,32 @@ export async function fetchUserRole(): Promise<UserRole | null> {
         return null;
     }
 }
+
+/**
+ * Check if user is authenticated but missing a profile (no role or account_id)
+ * Returns true if user is logged in but needs to complete setup
+ */
+export async function isAuthenticatedButMissingProfile(): Promise<boolean> {
+    try {
+        const supabase = await createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+
+        if (!user) return false; // Not authenticated
+
+        const { data, error } = await supabase
+            .from('profiles')
+            .select('role, account_id')
+            .eq('id', user.id)
+            .single();
+
+        // If profile doesn't exist or is missing role/account_id, user needs setup
+        if (error || !data || !data.role || !data.account_id) {
+            return true;
+        }
+
+        return false;
+    } catch (error) {
+        console.error('Error checking profile status:', error);
+        return false;
+    }
+}

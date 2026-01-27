@@ -136,6 +136,7 @@ interface EEGContextType {
   shouldShowIntervention: boolean;
   setShouldShowIntervention: (show: boolean) => void;
   isUsingWebSocket: boolean;
+  injectReading: (reading: EEGReading) => void;
 }
 
 const EEGContext = createContext<EEGContextType | undefined>(undefined);
@@ -421,6 +422,10 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     ));
   }, []);
 
+  const injectReading = useCallback((reading: EEGReading) => {
+    processReading(reading);
+  }, [processReading]);
+
   const value: EEGContextType = {
     readings,
     analysis,
@@ -434,6 +439,7 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     shouldShowIntervention,
     setShouldShowIntervention,
     isUsingWebSocket: globalIsUsingWebSocket,
+    injectReading,
   };
 
   return <EEGContext.Provider value={value}>{children}</EEGContext.Provider>;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { EmotionalStateIndicator } from '@/components/dashboard/EmotionalStateIndicator';
 import { EEGWaveform } from '@/components/dashboard/EEGWaveform';
@@ -12,10 +12,12 @@ import { QuickStats } from '@/components/dashboard/QuickStats';
 import { InterventionDialog } from '@/components/dashboard/InterventionDialog';
 import { useEEGSimulation } from '@/hooks/useEEGSimulation';
 import { useRole } from '@/contexts/RoleContext';
+import { isAuthenticatedButMissingProfile } from '@/app/actions/user';
 
 export default function CaregiverDashboard() {
     const router = useRouter();
     const { isElder, loading: roleLoading } = useRole();
+    const [checkingProfile, setCheckingProfile] = useState(true);
     const {
         readings,
         analysis,
@@ -29,15 +31,29 @@ export default function CaregiverDashboard() {
         setShouldShowIntervention,
     } = useEEGSimulation();
 
+    // Check if user is authenticated but missing profile
+    useEffect(() => {
+        const checkProfile = async () => {
+            const needsSetup = await isAuthenticatedButMissingProfile();
+            if (needsSetup) {
+                router.replace('/setup');
+                return;
+            }
+            setCheckingProfile(false);
+        };
+
+        checkProfile();
+    }, [router]);
+
     // Redirect to elder page if user is in elder role (from context)
     useEffect(() => {
-        if (!roleLoading && isElder) {
+        if (!checkingProfile && !roleLoading && isElder) {
             router.replace('/elder');
         }
-    }, [isElder, roleLoading, router]);
+    }, [isElder, roleLoading, checkingProfile, router]);
 
-    // Show loading until role is ready (prevents flash of wrong content / missing topbar icons)
-    if (roleLoading || isElder) {
+    // Show loading until profile check and role are ready (prevents flash of wrong content / missing topbar icons)
+    if (checkingProfile || roleLoading || isElder) {
         return (
             <div className="flex items-center justify-center min-h-screen">
                 <div className="text-muted-foreground">Loading...</div>

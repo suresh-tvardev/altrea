@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { SelfSelectMood } from '@/components/elder/SelfSelectMood';
 import { ElderDashboard } from '@/components/elder/ElderDashboard';
 import { storageService } from '@/services/storage';
+import { isAuthenticatedButMissingProfile } from '@/app/actions/user';
 import type { MoodSelection } from '@/types/eeg';
 
 export default function ElderPage() {
@@ -13,12 +14,29 @@ export default function ElderPage() {
   const router = useRouter();
   const [moodSelected, setMoodSelected] = useState<MoodSelection | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [checkingProfile, setCheckingProfile] = useState(true);
 
   useEffect(() => {
-    // Wait for role to load before redirect logic – avoids redirect loop when role is null on mount
-    if (roleLoading) return;
+    // Check if user is authenticated but missing profile
+    const checkProfile = async () => {
+      const needsSetup = await isAuthenticatedButMissingProfile();
+      if (needsSetup) {
+        router.replace('/setup');
+        return;
+      }
+      setCheckingProfile(false);
+    };
+
+    checkProfile();
+  }, [router]);
+
+  useEffect(() => {
+    // Wait for profile check and role to load before redirect logic
+    if (checkingProfile || roleLoading) return;
 
     if (!isElder) {
+      // If user has a role but it's not elder, redirect to home
+      // Home page will redirect them to the correct dashboard
       router.replace('/');
       return;
     }
@@ -27,14 +45,14 @@ export default function ElderPage() {
     const todayMood = storageService.getElderMoodSelection();
     setMoodSelected(todayMood);
     setIsLoading(false);
-  }, [isElder, roleLoading, router]);
+  }, [isElder, roleLoading, checkingProfile, router]);
 
   const handleMoodSelected = (mood: MoodSelection) => {
     storageService.saveElderMoodSelection(mood);
     setMoodSelected(mood);
   };
 
-  if (roleLoading || isLoading) {
+  if (checkingProfile || roleLoading || isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-muted-foreground">Loading...</div>

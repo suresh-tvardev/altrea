@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Phone, User, Stethoscope, AlertCircle, Star } from 'lucide-react';
-import { storageService } from '@/services/storage';
+import { getCareTeamMembers } from '@/app/actions/settings';
 import type { Caregiver } from '@/types/eeg';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -15,13 +15,23 @@ export const ElderCircleOfCare = () => {
 
   useEffect(() => {
     loadCaregivers();
-    const interval = setInterval(loadCaregivers, 2000);
+    // Refresh every 5 seconds to get updated contacts
+    const interval = setInterval(loadCaregivers, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  const loadCaregivers = () => {
-    const loaded = storageService.getCaregivers();
-    setCaregivers(loaded);
+  const loadCaregivers = async () => {
+    try {
+      const loaded = await getCareTeamMembers();
+      setCaregivers(loaded);
+    } catch (error) {
+      console.error('Error loading caregivers:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load contacts. Please try again.',
+        variant: 'destructive',
+      });
+    }
   };
 
   const handleCall = (phone: string, name: string) => {
