@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Activity, Settings, User, Wifi, WifiOff, Zap } from 'lucide-react';
+import { Activity, Settings, User, Wifi, WifiOff } from 'lucide-react';
 import { useRole } from '@/contexts/RoleContext';
 
 interface HeaderProps {
@@ -58,16 +58,6 @@ export const Header = ({ isConnected, onToggleConnection }: HeaderProps) => {
                   </Link>
                 </>
               )}
-
-              <Link href="/simulator">
-                <Button variant="ghost" size="sm" className="hidden sm:flex">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Simulator
-                </Button>
-                <Button variant="ghost" size="icon" className="sm:hidden">
-                  <Zap className="w-5 h-5" />
-                </Button>
-              </Link>
 
               <Link href="/profile">
                 <Button variant="ghost" size="icon">

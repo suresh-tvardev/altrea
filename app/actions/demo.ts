@@ -240,3 +240,130 @@ export async function setupDemoEnvironment() {
     };
 }
 
+export async function clearDemoEnvironment() {
+    const adminClient = createAdminClient();
+
+    try {
+        const demoEmails = [
+            'demo.elder@altrea.test',
+            'demo.caregiver@altrea.test',
+            'demo.elder2@altrea.test',
+            'demo.caregiver2@altrea.test'
+        ];
+
+        const demoAccountNames = [
+            'Smith Family Care',
+            'Johnson Wellness Circle'
+        ];
+
+        const demoDeviceIds = [
+            'SN-DEMO-001',
+            'SN-DEMO-002'
+        ];
+
+        // Step 1: Find demo accounts by name
+        const { data: accountsByName } = await adminClient
+            .from('accounts')
+            .select('id, name, connection_info')
+            .in('name', demoAccountNames);
+
+        // Get all accounts and filter by device ID (since JSONB queries can be tricky)
+        const { data: allAccounts } = await adminClient
+            .from('accounts')
+            .select('id, name, connection_info');
+
+        // Filter accounts by device ID
+        const accountsByDevice = (allAccounts || []).filter(acc => {
+            const deviceId = (acc.connection_info as any)?.device_id;
+            return deviceId && demoDeviceIds.includes(deviceId);
+        });
+
+        // Combine and deduplicate account IDs
+        const allDemoAccounts = [...(accountsByName || []), ...accountsByDevice];
+        const uniqueAccounts = Array.from(new Map(allDemoAccounts.map(a => [a.id, a])).values());
+        const accountIds: string[] = uniqueAccounts.map(a => a.id);
+        const userIds: string[] = [];
+
+        if (accountIds.length > 0) {
+
+            // Step 2: Delete care team members for these accounts
+            await adminClient
+                .from('care_team_members')
+                .delete()
+                .in('account_id', accountIds);
+
+            // Step 3: Find users by email and get their IDs
+            for (const email of demoEmails) {
+                try {
+                    const { data: users } = await adminClient.auth.admin.listUsers();
+                    const user = users?.users.find(u => u.email === email);
+                    if (user) {
+                        userIds.push(user.id);
+                    }
+                } catch (error) {
+                    console.error(`Error finding user ${email}:`, error);
+                }
+            }
+
+            // Step 4: Delete profiles for demo users
+            if (userIds.length > 0) {
+                await adminClient
+                    .from('profiles')
+                    .delete()
+                    .in('id', userIds);
+            }
+
+            // Step 5: Delete auth users
+            for (const userId of userIds) {
+                try {
+                    await adminClient.auth.admin.deleteUser(userId);
+                } catch (error) {
+                    console.error(`Error deleting user ${userId}:`, error);
+                }
+            }
+
+            // Step 6: Delete accounts
+            await adminClient
+                .from('accounts')
+                .delete()
+                .in('id', accountIds);
+        }
+
+        return {
+            success: true,
+            deletedAccounts: accountIds.length,
+            deletedUsers: userIds.length
+        };
+    } catch (error: any) {
+        console.error('Demo cleanup failed:', error);
+        return { error: error.message || 'An unexpected error occurred during cleanup' };
+    }
+}
+
+export async function checkDemoUsersExist() {
+    const adminClient = createAdminClient();
+
+    try {
+        const demoEmails = [
+            'demo.elder@altrea.test',
+            'demo.caregiver@altrea.test',
+            'demo.elder2@altrea.test',
+            'demo.caregiver2@altrea.test'
+        ];
+
+        // Check if any demo users exist by email
+        const { data: users } = await adminClient.auth.admin.listUsers();
+        const demoUsersExist = users?.users.some(user => 
+            user.email && demoEmails.includes(user.email)
+        ) || false;
+
+        return {
+            exists: demoUsersExist
+        };
+    } catch (error: any) {
+        console.error('Error checking demo users:', error);
+        return { exists: false, error: error.message };
+    }
+}
+
+

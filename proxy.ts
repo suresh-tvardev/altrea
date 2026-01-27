@@ -24,8 +24,10 @@ export async function proxy(request: NextRequest) {
         return supabaseResponse
     }
 
-    // Allow access to home page and auth pages without checking auth
-    const isPublicPath = request.nextUrl.pathname === '/' || request.nextUrl.pathname.startsWith('/auth')
+    // Allow access to home page, auth pages, and demo page without checking auth
+    const isPublicPath = request.nextUrl.pathname === '/' || 
+                         request.nextUrl.pathname.startsWith('/auth') ||
+                         request.nextUrl.pathname === '/demo'
     
     try {
         const supabase = createServerClient(
