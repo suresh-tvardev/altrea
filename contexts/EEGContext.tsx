@@ -162,6 +162,8 @@ export function EEGProvider({ children }: { children: ReactNode }) {
   const lastAlertTimes = useRef<{ [key: string]: Date }>({});
   const previousState = useRef<EmotionalState>('neutral');
   const isInitializedRef = useRef(false);
+  const isInitialLoadRef = useRef(true); // Track if this is initial load
+  const mockDataIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const parseWebSocketMessage = useCallback((data: string): EEGReading | null => {
     try {
@@ -222,24 +224,60 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     }, 0);
   }, [toast]);
 
-  const processReading = useCallback((newReading: EEGReading) => {
+  const processReading = useCallback((newReading: EEGReading, fromLocalStorage = false, providedAnalysis?: EmotionalAnalysis) => {
+    console.log('processReading called:', {
+      fromLocalStorage,
+      isInitialLoad: isInitialLoadRef.current,
+      hasProvidedAnalysis: !!providedAnalysis,
+      reading: {
+        alpha: newReading.alpha,
+        beta: newReading.beta,
+        theta: newReading.theta,
+        delta: newReading.delta,
+        gamma: newReading.gamma,
+      }
+    });
+
     setReadings(prev => {
       const updated = [...prev.slice(-59), newReading];
-      const newAnalysis = analyzeEmotionalState(updated);
+      
+      // Use provided analysis from simulator if available, otherwise calculate
+      const newAnalysis = providedAnalysis || analyzeEmotionalState(updated);
+      
+      if (providedAnalysis) {
+        console.log('Using provided analysis from simulator:', newAnalysis);
+      } else {
+        console.log('New analysis calculated:', {
+          state: newAnalysis.state,
+          stressLevel: newAnalysis.stressLevel,
+          anxietyLevel: newAnalysis.anxietyLevel,
+          calmLevel: newAnalysis.calmLevel,
+          confidence: newAnalysis.confidence,
+        });
+      }
+      
       setAnalysis(newAnalysis);
       previousState.current = newAnalysis.state;
 
-      setTimeout(() => {
-        const alertCheck = alertService.checkThresholds(newAnalysis);
-        if (alertCheck && alertCheck.shouldAlert) {
-          const lastAlertTime = lastAlertTimes.current[alertCheck.alertType];
-          if (alertService.shouldSendAlert(alertCheck.alertType, lastAlertTime)) {
-            const alert = alertService.createAlert(alertCheck.alertType, alertCheck.message);
-            addAlert(alert);
-            lastAlertTimes.current[alertCheck.alertType] = new Date();
+      // Only process alerts if:
+      // 1. It's from localStorage (simulator trigger), OR
+      // 2. It's not the initial load (after initial load is complete)
+      if (fromLocalStorage || !isInitialLoadRef.current) {
+        setTimeout(() => {
+          const alertCheck = alertService.checkThresholds(newAnalysis);
+          if (alertCheck && alertCheck.shouldAlert) {
+            const lastAlertTime = lastAlertTimes.current[alertCheck.alertType];
+            if (alertService.shouldSendAlert(alertCheck.alertType, lastAlertTime)) {
+              const alert = alertService.createAlert(alertCheck.alertType, alertCheck.message);
+              console.log('Alert created:', alert);
+              addAlert(alert);
+              lastAlertTimes.current[alertCheck.alertType] = new Date();
+            }
           }
-        }
-      }, 0);
+        }, 0);
+      } else {
+        console.log('Skipping alert processing - initial load or not from localStorage');
+      }
 
       return updated;
     });
@@ -342,6 +380,9 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     if (!isInitializedRef.current) {
       setHistoricalData(generateHistoricalData());
       setInsights(generateInsights());
+      // Clear any existing alerts on initial load
+      setAlerts([]);
+      isInitialLoadRef.current = true;
     }
 
     // Don't attempt connection if user is not authenticated
@@ -350,6 +391,8 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       // Reset initialization flag when user logs out
       if (!roleLoading && !role) {
         isInitializedRef.current = false;
+        isInitialLoadRef.current = true;
+        setAlerts([]); // Clear alerts on logout
       }
       return;
     }
@@ -404,16 +447,210 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     }
   }, [isConnected, connectWebSocket, role, roleLoading]);
 
-  // Mock data generation (fallback when not using WebSocket)
+  // Track last processed reading to avoid duplicates
+  const lastProcessedTrigger = useRef<number>(0);
+  const lastSimulatorReadingTime = useRef<number>(0); // Track when last simulator reading was received
+
+  // Listen to localStorage for simulator readings (when not using WebSocket)
   useEffect(() => {
-    if (globalIsUsingWebSocket || !isConnected) return;
+    console.log('localStorage listener effect:', {
+      globalIsUsingWebSocket,
+      isConnected,
+      willListen: !globalIsUsingWebSocket && isConnected,
+    });
 
-    const interval = setInterval(() => {
-      const newReading = generateEEGReading();
-      processReading(newReading);
-    }, 1000);
+    if (globalIsUsingWebSocket || !isConnected) {
+      // Clear mock data interval if using WebSocket
+      if (mockDataIntervalRef.current) {
+        clearInterval(mockDataIntervalRef.current);
+        mockDataIntervalRef.current = null;
+      }
+      console.log('Skipping localStorage listener - using WebSocket or not connected');
+      return;
+    }
 
-    return () => clearInterval(interval);
+    console.log('Setting up localStorage listener for simulator data');
+
+    // Mark initial load as complete after a short delay
+    const initialLoadTimeout = setTimeout(() => {
+      isInitialLoadRef.current = false;
+    }, 2000); // 2 seconds after mount, initial load is complete
+
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'altrea_simulator_eeg_reading' && e.newValue) {
+        try {
+          const readingData = JSON.parse(e.newValue);
+          // Check if this is a new reading (by trigger timestamp)
+          if (readingData._trigger && readingData._trigger > lastProcessedTrigger.current) {
+            lastProcessedTrigger.current = readingData._trigger;
+            // Use exact values from simulator - no transformation
+            const reading: EEGReading = {
+              timestamp: readingData.timestamp ? new Date(readingData.timestamp) : new Date(),
+              alpha: readingData.alpha, // Exact value
+              beta: readingData.beta, // Exact value
+              theta: readingData.theta, // Exact value
+              delta: readingData.delta, // Exact value
+              gamma: readingData.gamma, // Exact value
+            };
+            
+            // Use emotional analysis from simulator if available
+            if (readingData.analysis) {
+              console.log('=== CAREGIVER: Using emotional analysis from simulator ===');
+              console.log('Analysis from localStorage:', readingData.analysis);
+              setAnalysis(readingData.analysis);
+            }
+            
+            // Log the exact data received for debugging
+            console.log('=== CAREGIVER: Received from localStorage (storage event) ===');
+            console.log('Raw readingData:', readingData);
+            console.log('Constructed reading:', {
+              alpha: reading.alpha,
+              beta: reading.beta,
+              theta: reading.theta,
+              delta: reading.delta,
+              gamma: reading.gamma,
+            });
+            console.log('Values as numbers:', {
+              alpha: Number(reading.alpha),
+              beta: Number(reading.beta),
+              theta: Number(reading.theta),
+              delta: Number(reading.delta),
+              gamma: Number(reading.gamma),
+            });
+            // Validate values match exactly
+            const valuesMatch = (
+              Math.abs(readingData.alpha - reading.alpha) < 0.0001 &&
+              Math.abs(readingData.beta - reading.beta) < 0.0001 &&
+              Math.abs(readingData.theta - reading.theta) < 0.0001 &&
+              Math.abs(readingData.delta - reading.delta) < 0.0001 &&
+              Math.abs(readingData.gamma - reading.gamma) < 0.0001
+            );
+            
+            if (!valuesMatch) {
+              console.error('=== DATA MISMATCH DETECTED ===');
+              console.error('Original:', readingData);
+              console.error('Constructed:', reading);
+            } else {
+              console.log('✓ Values match exactly');
+            }
+            
+            // Update last simulator reading time
+            lastSimulatorReadingTime.current = Date.now();
+            // Mark as from localStorage (simulator trigger)
+            // If analysis is provided, don't recalculate it
+            processReading(reading, true, readingData.analysis);
+          }
+        } catch (error) {
+          console.error('Error parsing simulator reading from localStorage:', error);
+        }
+      }
+    };
+
+    // Listen to storage events (cross-tab communication)
+    window.addEventListener('storage', handleStorageChange);
+
+    // Also poll localStorage for same-tab updates (storage event doesn't fire in same tab)
+    // Poll more frequently (500ms) to catch simulator data immediately
+    const checkInterval = setInterval(() => {
+      const reading = storageService.getSimulatorReading();
+      if (reading && reading._trigger) {
+        // Check if this is a new reading
+        if (reading._trigger > lastProcessedTrigger.current) {
+          console.log('New simulator reading detected via polling:', {
+            trigger: reading._trigger,
+            lastProcessed: lastProcessedTrigger.current,
+            reading: {
+              alpha: reading.alpha,
+              beta: reading.beta,
+              theta: reading.theta,
+              delta: reading.delta,
+              gamma: reading.gamma,
+            }
+          });
+          
+          lastProcessedTrigger.current = reading._trigger;
+          // Use exact values from simulator - no transformation or rounding
+          const readingObj: EEGReading = {
+            timestamp: reading.timestamp instanceof Date ? reading.timestamp : new Date(reading.timestamp),
+            alpha: reading.alpha, // Exact value from simulator
+            beta: reading.beta, // Exact value from simulator
+            theta: reading.theta, // Exact value from simulator
+            delta: reading.delta, // Exact value from simulator
+            gamma: reading.gamma, // Exact value from simulator
+          };
+          
+          // Use emotional analysis from simulator if available
+          if (reading.analysis) {
+            console.log('=== CAREGIVER: Using emotional analysis from simulator (polling) ===');
+            console.log('Analysis from localStorage:', reading.analysis);
+            setAnalysis(reading.analysis);
+          }
+          
+          // Log the exact data received for debugging (same-tab polling)
+          console.log('=== CAREGIVER: Received from localStorage (polling) ===');
+          console.log('Raw reading from storage:', reading);
+          console.log('Constructed readingObj:', {
+            alpha: readingObj.alpha,
+            beta: readingObj.beta,
+            theta: readingObj.theta,
+            delta: readingObj.delta,
+            gamma: readingObj.gamma,
+          });
+          console.log('Values as numbers:', {
+            alpha: Number(readingObj.alpha),
+            beta: Number(readingObj.beta),
+            theta: Number(readingObj.theta),
+            delta: Number(readingObj.delta),
+            gamma: Number(readingObj.gamma),
+          });
+          // Validate values match exactly
+          const valuesMatch = (
+            Math.abs(reading.alpha - readingObj.alpha) < 0.0001 &&
+            Math.abs(reading.beta - readingObj.beta) < 0.0001 &&
+            Math.abs(reading.theta - readingObj.theta) < 0.0001 &&
+            Math.abs(reading.delta - readingObj.delta) < 0.0001 &&
+            Math.abs(reading.gamma - readingObj.gamma) < 0.0001
+          );
+          
+          if (!valuesMatch) {
+            console.error('=== DATA MISMATCH DETECTED (polling) ===');
+            console.error('From storage:', reading);
+            console.error('Constructed:', readingObj);
+          } else {
+            console.log('✓ Values match exactly (polling)');
+          }
+          
+          // Update last simulator reading time
+          lastSimulatorReadingTime.current = Date.now();
+          // Mark as from localStorage (simulator trigger)
+          // Pass the analysis if available
+          processReading(readingObj, true, reading.analysis);
+        } else {
+          console.log('Simulator reading already processed:', {
+            trigger: reading._trigger,
+            lastProcessed: lastProcessedTrigger.current,
+          });
+        }
+      } else {
+        // Log when no reading is found (only occasionally to avoid spam)
+        if (Math.random() < 0.01) { // Log 1% of the time
+          console.log('No simulator reading in localStorage');
+        }
+      }
+    }, 500); // Poll every 500ms to catch simulator data quickly
+
+    // Mock data generation is disabled - only use data from simulator
+    // No mock data will be generated
+
+    return () => {
+      clearTimeout(initialLoadTimeout);
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(checkInterval);
+      if (mockDataIntervalRef.current) {
+        clearInterval(mockDataIntervalRef.current);
+        mockDataIntervalRef.current = null;
+      }
+    };
   }, [globalIsUsingWebSocket, isConnected, processReading]);
 
   const acknowledgeAlert = useCallback((id: string) => {
@@ -423,7 +660,8 @@ export function EEGProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const injectReading = useCallback((reading: EEGReading) => {
-    processReading(reading);
+    // Direct injection from simulator - mark as from localStorage
+    processReading(reading, true);
   }, [processReading]);
 
   const value: EEGContextType = {

@@ -9,6 +9,7 @@ const STORAGE_KEYS = {
   ELDER_MOOD_SELECTION: 'altrea_elder_mood_selection',
   ELDER_MOOD_DATE: 'altrea_elder_mood_date',
   DEMO_MODE: 'altrea_demo_mode',
+  SIMULATOR_EEG_READING: 'altrea_simulator_eeg_reading',
 } as const;
 
 const DEFAULT_THRESHOLDS: AlertThresholds = {
@@ -253,6 +254,101 @@ export const storageService = {
     } catch (error) {
       console.error('Error saving demo mode to storage:', error);
       throw error;
+    }
+  },
+
+  // Save simulator EEG reading and emotional analysis to localStorage (for cross-tab communication)
+  saveSimulatorReading(reading: any, analysis?: any): void {
+    try {
+      if (typeof window === 'undefined') return;
+      // Preserve exact values - no transformation
+      const readingData = {
+        alpha: reading.alpha,
+        beta: reading.beta,
+        theta: reading.theta,
+        delta: reading.delta,
+        gamma: reading.gamma,
+        timestamp: reading.timestamp ? reading.timestamp.toISOString() : new Date().toISOString(),
+        _trigger: Date.now(), // Add trigger timestamp to force change detection
+        // Include emotional analysis if provided
+        analysis: analysis ? {
+          state: analysis.state,
+          confidence: analysis.confidence,
+          stressLevel: analysis.stressLevel,
+          anxietyLevel: analysis.anxietyLevel,
+          calmLevel: analysis.calmLevel,
+        } : undefined,
+      };
+      const jsonString = JSON.stringify(readingData);
+      localStorage.setItem(STORAGE_KEYS.SIMULATOR_EEG_READING, jsonString);
+      
+      // Verify what was saved
+      console.log('=== STORAGE: Saved to localStorage ===');
+      console.log('JSON String:', jsonString);
+      console.log('Reading Data:', readingData);
+      if (analysis) {
+        console.log('Emotional Analysis saved:', analysis);
+      }
+      
+      // Trigger storage event for cross-tab communication
+      window.dispatchEvent(new StorageEvent('storage', {
+        key: STORAGE_KEYS.SIMULATOR_EEG_READING,
+        newValue: jsonString,
+        storageArea: localStorage,
+      }));
+    } catch (error) {
+      console.error('Error saving simulator reading to storage:', error);
+    }
+  },
+
+  // Get simulator EEG reading and emotional analysis from localStorage
+  getSimulatorReading(): any | null {
+    try {
+      if (typeof window === 'undefined') return null;
+      const stored = localStorage.getItem(STORAGE_KEYS.SIMULATOR_EEG_READING);
+      if (!stored) return null;
+      const parsed = JSON.parse(stored);
+      
+      // Log what was retrieved
+      console.log('=== STORAGE: Retrieved from localStorage ===');
+      console.log('Raw stored string:', stored);
+      console.log('Parsed data:', parsed);
+      
+      // Return exact values as stored - no transformation
+      const result = {
+        alpha: parsed.alpha,
+        beta: parsed.beta,
+        theta: parsed.theta,
+        delta: parsed.delta,
+        gamma: parsed.gamma,
+        timestamp: parsed.timestamp ? new Date(parsed.timestamp) : new Date(),
+        _trigger: parsed._trigger,
+        // Include emotional analysis if available
+        analysis: parsed.analysis ? {
+          state: parsed.analysis.state,
+          confidence: parsed.analysis.confidence,
+          stressLevel: parsed.analysis.stressLevel,
+          anxietyLevel: parsed.analysis.anxietyLevel,
+          calmLevel: parsed.analysis.calmLevel,
+        } : undefined,
+      };
+      
+      console.log('Returned values:', {
+        alpha: result.alpha,
+        beta: result.beta,
+        theta: result.theta,
+        delta: result.delta,
+        gamma: result.gamma,
+      });
+      
+      if (result.analysis) {
+        console.log('Emotional Analysis retrieved:', result.analysis);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('Error reading simulator reading from storage:', error);
+      return null;
     }
   },
 };

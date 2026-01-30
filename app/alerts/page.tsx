@@ -16,49 +16,10 @@ import {
     X
 } from 'lucide-react';
 import type { Alert } from '@/types/eeg';
+import { storageService } from '@/services/storage';
+import { useEffect } from 'react';
 
-// Generate mock historical alerts
-const generateMockAlerts = (): Alert[] => {
-    const alerts: Alert[] = [];
-    const messages = {
-        critical: [
-            'Stress levels are unusually high. Immediate attention recommended.',
-            'Critical anxiety spike detected. Emergency protocols initiated.',
-            'Sustained high stress for over 30 minutes. Caregiver notified.',
-        ],
-        warning: [
-            'Anxiety patterns are elevated beyond normal range.',
-            'Prolonged anxious state detected. Monitoring closely.',
-            'Moderate stress increase observed during afternoon.',
-            'Sleep pattern irregularity affecting emotional baseline.',
-        ],
-        info: [
-            'Calm period extended. Positive trend noted.',
-            'Relaxation session completed successfully.',
-            'Weekly emotional stability improved by 12%.',
-        ],
-    };
-
-    for (let i = 0; i < 25; i++) {
-        const types: Array<'critical' | 'warning' | 'info'> = ['critical', 'warning', 'info'];
-        const type = types[Math.floor(Math.random() * (i < 5 ? 2 : 3))];
-        const typeMessages = messages[type];
-        const daysAgo = Math.floor(Math.random() * 30);
-        const date = new Date();
-        date.setDate(date.getDate() - daysAgo);
-        date.setHours(Math.floor(Math.random() * 24), Math.floor(Math.random() * 60));
-
-        alerts.push({
-            id: `alert-${i}`,
-            type,
-            message: typeMessages[Math.floor(Math.random() * typeMessages.length)],
-            timestamp: date,
-            acknowledged: Math.random() > 0.3,
-        });
-    }
-
-    return alerts.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
-};
+// No mock alerts - use real alerts from storage
 
 const alertConfig = {
     critical: {
@@ -99,11 +60,22 @@ const StatCard = ({ label, value, color = 'text-foreground' }: { label: string; 
 );
 
 export default function AlertHistoryPage() {
-    const [alerts] = useState<Alert[]>(generateMockAlerts);
+    const [alerts, setAlerts] = useState<Alert[]>([]);
     const [dateFilter, setDateFilter] = useState<DateFilter>('all');
     const [severityFilter, setSeverityFilter] = useState<SeverityFilter>('all');
     const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
     const [showFilters, setShowFilters] = useState(false);
+
+    // Load real alerts from storage
+    useEffect(() => {
+        const alertHistory = storageService.getAlertHistory();
+        // Convert stored alerts back to Alert format (timestamp is string in storage)
+        const realAlerts: Alert[] = alertHistory.map((alert: any) => ({
+            ...alert,
+            timestamp: new Date(alert.timestamp),
+        }));
+        setAlerts(realAlerts);
+    }, []);
 
     const filteredAlerts = useMemo(() => {
         return alerts.filter(alert => {

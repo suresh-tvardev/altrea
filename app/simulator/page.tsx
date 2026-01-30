@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,7 +11,8 @@ import { useEEGSimulation } from '@/hooks/useEEGSimulation';
 import { useRole } from '@/contexts/RoleContext';
 import { AlertTriangle, Activity, Zap, Heart, Brain, ArrowLeft, Play, Square } from 'lucide-react';
 import { toast } from 'sonner';
-import type { EEGReading, EmotionalState } from '@/types/eeg';
+import { storageService } from '@/services/storage';
+import type { EEGReading, EmotionalState, EmotionalAnalysis } from '@/types/eeg';
 
 // Helper function to generate stress readings based on stress level
 const generateStressReading = (stressLevel: number): EEGReading => {
@@ -118,12 +119,114 @@ export default function SimulatorPage() {
   const [stressLevel, setStressLevel] = useState(50);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [autoPlayInterval, setAutoPlayInterval] = useState<NodeJS.Timeout | null>(null);
+  const [previewAnalysis, setPreviewAnalysis] = useState<EmotionalAnalysis | null>(null);
 
   // Check if user is authenticated
   if (!roleLoading && !role) {
     router.replace('/auth/login');
     return null;
   }
+
+  // Update preview analysis when slider changes
+  useEffect(() => {
+    const previewReading = generateStressReading(stressLevel);
+    const tempReadings = [previewReading];
+    const preview = calculateEmotionalAnalysis(tempReadings, stressLevel);
+    setPreviewAnalysis(preview);
+  }, [stressLevel]);
+
+  // Calculate emotional analysis based on the stress level from slider
+  const calculateEmotionalAnalysis = (readings: EEGReading[], sliderStressLevel: number): EmotionalAnalysis => {
+    if (readings.length === 0) {
+      return { state: 'neutral', confidence: 0.5, stressLevel: sliderStressLevel, anxietyLevel: 20, calmLevel: 50 };
+    }
+
+    const latest = readings[readings.length - 1];
+    const alphaRatio = latest.alpha / (latest.beta + 1);
+    const thetaRatio = latest.theta / (latest.alpha + 1);
+
+    // Use the slider stress level directly instead of random values
+    let state: EmotionalState = 'neutral';
+    let stressLevel = sliderStressLevel; // Use the actual slider value
+    let anxietyLevel: number;
+    let calmLevel: number;
+
+    // Determine emotional state based on stress level and EEG patterns
+    if (stressLevel >= 80) {
+      // Critical stress - fear or stressed state
+      if (latest.beta > 35) {
+        state = 'fear';
+        anxietyLevel = 75 + (stressLevel - 80) * 0.5; // Scale with stress level
+        calmLevel = 100 - stressLevel; // Inverse relationship
+      } else {
+        state = 'stressed';
+        anxietyLevel = 50 + (stressLevel - 80) * 0.5;
+        calmLevel = 100 - stressLevel;
+      }
+    } else if (stressLevel >= 70) {
+      // High stress - stressed or anxious
+      if (latest.beta > 25) {
+        state = 'stressed';
+        anxietyLevel = 40 + (stressLevel - 70) * 1.5;
+        calmLevel = 100 - stressLevel;
+      } else {
+        state = 'anxious';
+        anxietyLevel = 50 + (stressLevel - 70) * 1.5;
+        calmLevel = 100 - stressLevel;
+      }
+    } else if (stressLevel >= 50) {
+      // Moderate stress
+      state = 'stressed';
+      anxietyLevel = 30 + (stressLevel - 50) * 1.0;
+      calmLevel = 100 - stressLevel;
+    } else if (stressLevel >= 30) {
+      // Low stress - neutral or calm
+      if (alphaRatio > 0.6) {
+        state = 'relaxed';
+        calmLevel = 60 + (50 - stressLevel) * 0.5;
+        anxietyLevel = stressLevel * 0.5;
+      } else if (thetaRatio > 0.5) {
+        state = 'calm';
+        calmLevel = 50 + (50 - stressLevel) * 0.5;
+        anxietyLevel = stressLevel * 0.5;
+      } else {
+        state = 'neutral';
+        calmLevel = 50 + (50 - stressLevel) * 0.5;
+        anxietyLevel = stressLevel * 0.5;
+      }
+    } else {
+      // Very low stress - calm or relaxed
+      if (alphaRatio > 0.6) {
+        state = 'relaxed';
+        calmLevel = 70 + (30 - stressLevel) * 0.5;
+        anxietyLevel = stressLevel * 0.3;
+      } else if (latest.theta > 6 && latest.alpha < 8) {
+        state = 'fatigue';
+        calmLevel = 40 + (30 - stressLevel) * 0.5;
+        anxietyLevel = stressLevel * 0.3;
+      } else {
+        state = 'calm';
+        calmLevel = 60 + (30 - stressLevel) * 0.5;
+        anxietyLevel = stressLevel * 0.3;
+      }
+    }
+
+    // Ensure values are within bounds
+    stressLevel = Math.max(0, Math.min(100, stressLevel));
+    anxietyLevel = Math.max(0, Math.min(100, anxietyLevel));
+    calmLevel = Math.max(0, Math.min(100, calmLevel));
+
+    // Confidence based on how clear the pattern is
+    const confidence = 0.7 + (Math.abs(stressLevel - 50) / 50) * 0.2; // Higher confidence for extreme values
+
+    return {
+      state,
+      confidence: Math.max(0.6, Math.min(1, confidence)),
+      stressLevel,
+      anxietyLevel,
+      calmLevel,
+    };
+  };
 
   const handleTriggerStress = (level: number, anxietyBoost = false) => {
     const reading = generateStressReading(level);
@@ -134,7 +237,30 @@ export default function SimulatorPage() {
       reading.alpha = Math.min(reading.alpha, 5);
     }
     
+    // Calculate emotional analysis from the reading using the actual stress level
+    // Use a temporary readings array with just this reading for calculation
+    const tempReadings = [reading];
+    const emotionalAnalysis = calculateEmotionalAnalysis(tempReadings, level);
+    
+    // Inject reading directly (for same-tab updates)
     injectReading(reading);
+    
+    // Also save to localStorage for cross-tab communication (caregiver view)
+    // Save both reading data and emotional analysis
+    storageService.saveSimulatorReading(reading, emotionalAnalysis);
+    
+    // Log the exact data being saved for debugging with precise values
+    console.log('=== SIMULATOR: Saving to localStorage ===');
+    console.log('Stress Level:', level);
+    console.log('Exact EEG Values:', {
+      alpha: reading.alpha,
+      beta: reading.beta,
+      theta: reading.theta,
+      delta: reading.delta,
+      gamma: reading.gamma,
+    });
+    console.log('Emotional Analysis:', emotionalAnalysis);
+    
     toast.success(`Stress event triggered at ${level}% level`);
   };
 
@@ -165,6 +291,7 @@ export default function SimulatorPage() {
     toast.info('Auto-play stopped');
   };
 
+  const displayAnalysis = previewAnalysis || analysis;
   const currentStateColor = {
     calm: 'text-green-600',
     neutral: 'text-gray-600',
@@ -174,7 +301,7 @@ export default function SimulatorPage() {
     lonely: 'text-orange-600',
     fear: 'text-red-800',
     fatigue: 'text-yellow-600',
-  }[analysis.state] || 'text-gray-600';
+  }[displayAnalysis.state] || 'text-gray-600';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
@@ -213,31 +340,34 @@ export default function SimulatorPage() {
               <div>
                 <Label className="text-sm text-muted-foreground">Emotional State</Label>
                 <p className={`text-2xl font-bold ${currentStateColor}`}>
-                  {analysis.state.charAt(0).toUpperCase() + analysis.state.slice(1)}
+                  {displayAnalysis.state.charAt(0).toUpperCase() + displayAnalysis.state.slice(1)}
                 </p>
+                {previewAnalysis && (
+                  <p className="text-xs text-muted-foreground mt-1">Preview (move slider to update)</p>
+                )}
               </div>
               <div className="space-y-2">
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Stress Level</span>
-                    <span className="font-semibold">{Math.round(analysis.stressLevel)}%</span>
+                    <span className="font-semibold">{Math.round(displayAnalysis.stressLevel)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-red-500 h-2 rounded-full transition-all"
-                      style={{ width: `${analysis.stressLevel}%` }}
+                      style={{ width: `${displayAnalysis.stressLevel}%` }}
                     />
                   </div>
                 </div>
                 <div>
                   <div className="flex justify-between text-sm mb-1">
                     <span className="text-muted-foreground">Anxiety Level</span>
-                    <span className="font-semibold">{Math.round(analysis.anxietyLevel)}%</span>
+                    <span className="font-semibold">{Math.round(displayAnalysis.anxietyLevel)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
                       className="bg-purple-500 h-2 rounded-full transition-all"
-                      style={{ width: `${analysis.anxietyLevel}%` }}
+                      style={{ width: `${displayAnalysis.anxietyLevel}%` }}
                     />
                   </div>
                 </div>

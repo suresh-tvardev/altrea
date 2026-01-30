@@ -167,13 +167,13 @@ export async function setupDemoEnvironment() {
             accountName: 'Smith Family Care',
             deviceId: 'SN-DEMO-001',
             elder: {
-                email: 'demo.elder@altrea.test',
+                email: 'margaret.smith@altrea.com',
                 password: 'Demo123!',
                 name: 'Margaret Smith',
                 phone: '+1-555-0101'
             },
             caregiver: {
-                email: 'demo.caregiver@altrea.test',
+                email: 'john.smith@altrea.com',
                 password: 'Demo123!',
                 name: 'John Smith',
                 phone: '+1-555-0102'
@@ -201,13 +201,13 @@ export async function setupDemoEnvironment() {
             accountName: 'Johnson Wellness Circle',
             deviceId: 'SN-DEMO-002',
             elder: {
-                email: 'demo.elder2@altrea.test',
+                email: 'robert.johnson@altrea.com',
                 password: 'Demo123!',
                 name: 'Robert Johnson',
                 phone: '+1-555-0201'
             },
             caregiver: {
-                email: 'demo.caregiver2@altrea.test',
+                email: 'lisa.johnson@altrea.com',
                 password: 'Demo123!',
                 name: 'Lisa Johnson',
                 phone: '+1-555-0202'
@@ -245,10 +245,10 @@ export async function clearDemoEnvironment() {
 
     try {
         const demoEmails = [
-            'demo.elder@altrea.test',
-            'demo.caregiver@altrea.test',
-            'demo.elder2@altrea.test',
-            'demo.caregiver2@altrea.test'
+            'margaret.smith@altrea.com',
+            'john.smith@altrea.com',
+            'robert.johnson@altrea.com',
+            'lisa.johnson@altrea.com'
         ];
 
         const demoAccountNames = [
@@ -345,10 +345,10 @@ export async function checkDemoUsersExist() {
 
     try {
         const demoEmails = [
-            'demo.elder@altrea.test',
-            'demo.caregiver@altrea.test',
-            'demo.elder2@altrea.test',
-            'demo.caregiver2@altrea.test'
+            'margaret.smith@altrea.com',
+            'john.smith@altrea.com',
+            'robert.johnson@altrea.com',
+            'lisa.johnson@altrea.com'
         ];
 
         // Check if any demo users exist by email

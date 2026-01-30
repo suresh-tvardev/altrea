@@ -23,7 +23,7 @@ export const ElderCircleOfCare = () => {
   const loadCaregivers = async () => {
     try {
       const loaded = await getCareTeamMembers();
-      setCaregivers(loaded);
+    setCaregivers(loaded);
     } catch (error) {
       console.error('Error loading caregivers:', error);
       toast({

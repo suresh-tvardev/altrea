@@ -38,6 +38,14 @@ export const ElderDashboard = ({ selectedMood }: ElderDashboardProps) => {
           </CardContent>
         </Card>
 
+        {/* Activities for You - Moved to top for visibility */}
+        <div className="mb-6">
+          <ElderInterventions
+            analysis={analysis}
+            selectedMood={selectedMood}
+          />
+        </div>
+
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
@@ -52,12 +60,6 @@ export const ElderDashboard = ({ selectedMood }: ElderDashboardProps) => {
             <ElderEEGView
               readings={readings}
               isConnected={isConnected}
-            />
-
-            {/* Interventions */}
-            <ElderInterventions
-              analysis={analysis}
-              selectedMood={selectedMood}
             />
           </div>
 

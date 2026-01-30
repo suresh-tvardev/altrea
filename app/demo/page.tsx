@@ -76,12 +76,12 @@ const DEMO_ACCOUNTS = [
     {
         name: 'Smith Family Care',
         elder: {
-            email: 'demo.elder@altrea.test',
+            email: 'margaret.smith@altrea.com',
             password: 'Demo123!',
             name: 'Margaret Smith',
         },
         caregiver: {
-            email: 'demo.caregiver@altrea.test',
+            email: 'john.smith@altrea.com',
             password: 'Demo123!',
             name: 'John Smith',
         },
@@ -90,12 +90,12 @@ const DEMO_ACCOUNTS = [
     {
         name: 'Johnson Wellness Circle',
         elder: {
-            email: 'demo.elder2@altrea.test',
+            email: 'robert.johnson@altrea.com',
             password: 'Demo123!',
             name: 'Robert Johnson',
         },
         caregiver: {
-            email: 'demo.caregiver2@altrea.test',
+            email: 'lisa.johnson@altrea.com',
             password: 'Demo123!',
             name: 'Lisa Johnson',
         },
@@ -443,14 +443,14 @@ export default function DemoPage() {
                                         </div>
                                         <div>
                                             <p className="font-medium">View Circle of Care</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Scroll down to see the <strong>"Circle of Care"</strong> panel. Verify you can see:
+                                            <div className="text-sm text-muted-foreground">
+                                                <p>Scroll down to see the <strong>"Circle of Care"</strong> panel. Verify you can see:</p>
                                                 <ul className="list-disc list-inside mt-1 ml-2">
                                                     <li>Primary Caregiver (John Smith)</li>
                                                     <li>Family members (Sarah Smith - Daughter)</li>
                                                     <li>Doctors (Dr. Emily Johnson)</li>
                                                 </ul>
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-3">
