@@ -1,7 +1,7 @@
 # WebSocket Streaming Service Setup
 
 This document explains how to set up and run the WebSocket streaming service that provides synthetic EEG data to the Altrea application.
-
+ss
 ## Prerequisites
 
 - Python 3.7 or higher
