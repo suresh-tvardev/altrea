@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   ELDER_MOOD_DATE: 'altrea_elder_mood_date',
   DEMO_MODE: 'altrea_demo_mode',
   SIMULATOR_EEG_READING: 'altrea_simulator_eeg_reading',
+  CONNECTION_MODE: 'altrea_connection_mode', // 'localStorage' or 'streaming'
 } as const;
 
 const DEFAULT_THRESHOLDS: AlertThresholds = {
@@ -349,6 +350,30 @@ export const storageService = {
     } catch (error) {
       console.error('Error reading simulator reading from storage:', error);
       return null;
+    }
+  },
+
+  // Get connection mode (localStorage or streaming)
+  getConnectionMode(): 'localStorage' | 'streaming' {
+    try {
+      if (typeof window === 'undefined') return 'localStorage';
+      const stored = localStorage.getItem(STORAGE_KEYS.CONNECTION_MODE);
+      if (!stored) return 'localStorage'; // Default to localStorage
+      return stored === 'streaming' ? 'streaming' : 'localStorage';
+    } catch (error) {
+      console.error('Error reading connection mode from storage:', error);
+      return 'localStorage';
+    }
+  },
+
+  // Save connection mode
+  saveConnectionMode(mode: 'localStorage' | 'streaming'): void {
+    try {
+      if (typeof window === 'undefined') return;
+      localStorage.setItem(STORAGE_KEYS.CONNECTION_MODE, mode);
+    } catch (error) {
+      console.error('Error saving connection mode to storage:', error);
+      throw error;
     }
   },
 };

@@ -401,10 +401,19 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     if (isInitializedRef.current) return;
     isInitializedRef.current = true;
 
-    const wsUrl = storageService.getWebSocketUrl();
-    if (wsUrl && isConnected) {
-      connectWebSocket();
+    // Check connection mode preference
+    const connectionMode = storageService.getConnectionMode();
+    
+    // Only use WebSocket if connection mode is 'streaming' and URL is configured
+    if (connectionMode === 'streaming') {
+      const wsUrl = storageService.getWebSocketUrl();
+      if (wsUrl && isConnected) {
+        connectWebSocket();
+      } else {
+        setIsUsingWebSocket(false);
+      }
     } else {
+      // localStorage mode - don't use WebSocket
       setIsUsingWebSocket(false);
     }
 
@@ -436,14 +445,28 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    const wsUrl = storageService.getWebSocketUrl();
-    if (wsUrl && isConnected && !globalWsRef) {
-      connectWebSocket();
-    } else if (!isConnected && globalWsRef) {
-      globalWsRef.close();
-      globalWsRef = null;
-      setIsUsingWebSocket(false);
-      globalIsUsingWebSocket = false;
+    // Check connection mode preference
+    const connectionMode = storageService.getConnectionMode();
+    
+    // Only use WebSocket if connection mode is 'streaming' and URL is configured
+    if (connectionMode === 'streaming') {
+      const wsUrl = storageService.getWebSocketUrl();
+      if (wsUrl && isConnected && !globalWsRef) {
+        connectWebSocket();
+      } else if (!isConnected && globalWsRef) {
+        globalWsRef.close();
+        globalWsRef = null;
+        setIsUsingWebSocket(false);
+        globalIsUsingWebSocket = false;
+      }
+    } else {
+      // localStorage mode - ensure WebSocket is not used
+      if (globalWsRef) {
+        globalWsRef.close();
+        globalWsRef = null;
+        setIsUsingWebSocket(false);
+        globalIsUsingWebSocket = false;
+      }
     }
   }, [isConnected, connectWebSocket, role, roleLoading]);
 
@@ -451,21 +474,26 @@ export function EEGProvider({ children }: { children: ReactNode }) {
   const lastProcessedTrigger = useRef<number>(0);
   const lastSimulatorReadingTime = useRef<number>(0); // Track when last simulator reading was received
 
-  // Listen to localStorage for simulator readings (when not using WebSocket)
+  // Listen to localStorage for simulator readings (when using localStorage mode)
   useEffect(() => {
+    // Check connection mode preference
+    const connectionMode = storageService.getConnectionMode();
+    
     console.log('localStorage listener effect:', {
+      connectionMode,
       globalIsUsingWebSocket,
       isConnected,
-      willListen: !globalIsUsingWebSocket && isConnected,
+      willListen: connectionMode === 'localStorage' && !globalIsUsingWebSocket && isConnected,
     });
 
-    if (globalIsUsingWebSocket || !isConnected) {
-      // Clear mock data interval if using WebSocket
+    // Only listen to localStorage if connection mode is 'localStorage'
+    if (connectionMode !== 'localStorage' || globalIsUsingWebSocket || !isConnected) {
+      // Clear mock data interval if using WebSocket or streaming mode
       if (mockDataIntervalRef.current) {
         clearInterval(mockDataIntervalRef.current);
         mockDataIntervalRef.current = null;
       }
-      console.log('Skipping localStorage listener - using WebSocket or not connected');
+      console.log('Skipping localStorage listener - using streaming mode, WebSocket, or not connected');
       return;
     }
 

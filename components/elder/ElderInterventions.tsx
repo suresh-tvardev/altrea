@@ -3,58 +3,85 @@
 import { useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Music, Heart, Sparkles, Phone, Volume2 } from 'lucide-react';
+import { Music, Heart, Sparkles, Phone, Volume2, AlertCircle } from 'lucide-react';
 import { getIntervention } from '@/services/interventionService';
 import type { EmotionalAnalysis, MoodSelection } from '@/types/eeg';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface ElderInterventionsProps {
   analysis: EmotionalAnalysis;
   selectedMood: MoodSelection;
+  stressCategory?: 'critical' | 'high' | 'moderate' | 'low' | 'calm';
 }
 
-export const ElderInterventions = ({ analysis, selectedMood }: ElderInterventionsProps) => {
+export const ElderInterventions = ({ analysis, selectedMood, stressCategory = 'calm' }: ElderInterventionsProps) => {
   const router = useRouter();
   const intervention = useMemo(() => getIntervention(analysis), [analysis]);
 
-  // Combine mood selection with EEG analysis for better recommendations
+  // Combine mood selection with EEG analysis and stress level for better recommendations
   const getRecommendations = () => {
-    const recommendations: Array<{ title: string; icon: any; action: string; color: string }> = [];
+    const recommendations: Array<{ title: string; icon: any; action: string; color: string; priority: number }> = [];
 
-    // Based on selected mood
-    if (selectedMood === 'happy' || selectedMood === 'calm') {
+    // Priority recommendations based on stress level
+    if (stressCategory === 'critical' || stressCategory === 'high') {
+      // High priority calming activities for high stress
       recommendations.push(
-        { title: 'Capture This Moment', icon: Heart, action: 'photo', color: 'bg-yellow-500' },
-        { title: 'Gratitude Journal', icon: Sparkles, action: 'journal', color: 'bg-green-500' }
+        { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: 'bg-blue-500', priority: 1 },
+        { title: 'Calm Music', icon: Music, action: 'music', color: 'bg-purple-500', priority: 2 },
+        { title: 'Call Family', icon: Phone, action: 'call', color: 'bg-pink-500', priority: 3 }
       );
-    } else if (selectedMood === 'stressed') {
+    } else if (stressCategory === 'moderate') {
+      // Moderate stress - mix of calming and engaging
       recommendations.push(
-        { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: 'bg-blue-500' },
-        { title: 'Calm Music', icon: Music, action: 'music', color: 'bg-purple-500' }
-      );
-    } else if (selectedMood === 'lonely') {
-      recommendations.push(
-        { title: 'Call Family', icon: Phone, action: 'call', color: 'bg-pink-500' },
-        { title: 'Memory Sharing', icon: Heart, action: 'memory', color: 'bg-red-500' }
-      );
-    } else if (selectedMood === 'sad') {
-      recommendations.push(
-        { title: 'View Memories', icon: Heart, action: 'memories', color: 'bg-purple-500' },
-        { title: 'Listen to Music', icon: Music, action: 'music', color: 'bg-blue-500' }
+        { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: 'bg-blue-500', priority: 1 },
+        { title: 'Calm Music', icon: Music, action: 'music', color: 'bg-purple-500', priority: 2 }
       );
     }
 
-    // Add music if available
+    // Based on selected mood (if not already covered by stress level)
+    if (stressCategory !== 'critical' && stressCategory !== 'high') {
+      if (selectedMood === 'happy' || selectedMood === 'calm') {
+        recommendations.push(
+          { title: 'Capture This Moment', icon: Heart, action: 'photo', color: 'bg-yellow-500', priority: 3 },
+          { title: 'Gratitude Journal', icon: Sparkles, action: 'journal', color: 'bg-green-500', priority: 4 }
+        );
+      } else if (selectedMood === 'stressed') {
+        recommendations.push(
+          { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: 'bg-blue-500', priority: 1 },
+          { title: 'Calm Music', icon: Music, action: 'music', color: 'bg-purple-500', priority: 2 }
+        );
+      } else if (selectedMood === 'lonely') {
+        recommendations.push(
+          { title: 'Call Family', icon: Phone, action: 'call', color: 'bg-pink-500', priority: 1 },
+          { title: 'Memory Sharing', icon: Heart, action: 'memory', color: 'bg-red-500', priority: 2 }
+        );
+      } else if (selectedMood === 'sad') {
+        recommendations.push(
+          { title: 'View Memories', icon: Heart, action: 'memories', color: 'bg-purple-500', priority: 1 },
+          { title: 'Listen to Music', icon: Music, action: 'music', color: 'bg-blue-500', priority: 2 }
+        );
+      }
+    }
+
+    // Add music if available (if not already added)
     if (intervention.music && intervention.music.length > 0) {
-      recommendations.push({
-        title: 'Play Music',
-        icon: Music,
-        action: 'music',
-        color: 'bg-indigo-500'
-      });
+      const hasMusic = recommendations.some(r => r.action === 'music');
+      if (!hasMusic) {
+        recommendations.push({
+          title: 'Play Music',
+          icon: Music,
+          action: 'music',
+          color: 'bg-indigo-500',
+          priority: 5
+        });
+      }
     }
 
-    return recommendations.slice(0, 4); // Limit to 4 recommendations
+    // Sort by priority and limit to 4
+    return recommendations
+      .sort((a, b) => a.priority - b.priority)
+      .slice(0, 4);
   };
 
   const recommendations = getRecommendations();
@@ -73,37 +100,60 @@ export const ElderInterventions = ({ analysis, selectedMood }: ElderIntervention
     return null;
   }
 
+  const isHighStress = stressCategory === 'critical' || stressCategory === 'high';
+
   return (
-    <Card className="border-2 border-pink-200 bg-white/90 shadow-lg">
+    <Card className={cn(
+      "border-2 bg-white/90 shadow-lg transition-all duration-500",
+      isHighStress ? "border-red-300 shadow-xl" : "border-pink-200"
+    )}>
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
-            <Sparkles className="w-6 h-6 text-pink-500" />
-            <h2 className="text-2xl font-bold text-foreground">
-              Activities for You
+            {isHighStress ? (
+              <AlertCircle className="w-6 h-6 text-red-500 animate-pulse" />
+            ) : (
+              <Sparkles className="w-6 h-6 text-pink-500" />
+            )}
+            <h2 className={cn(
+              "text-2xl font-bold transition-colors duration-500",
+              isHighStress ? "text-red-700" : "text-foreground"
+            )}>
+              {isHighStress ? "Calming Activities for You" : "Activities for You"}
             </h2>
           </div>
 
-          <p className="text-lg text-muted-foreground">
-            Based on how you're feeling, here are some things that might help:
+          <p className={cn(
+            "text-lg transition-colors duration-500",
+            isHighStress ? "text-red-600 font-medium" : "text-muted-foreground"
+          )}>
+            {isHighStress 
+              ? "I notice you might be feeling stressed. These activities can help you feel calmer:"
+              : "Based on how you're feeling, here are some things that might help:"
+            }
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
             {recommendations.map((rec, index) => {
               const Icon = rec.icon;
+              const isPriority = index === 0 && isHighStress;
               return (
                 <Button
                   key={index}
                   onClick={() => handleAction(rec.action)}
-                  className={`
-                    h-24 text-lg font-semibold
-                    ${rec.color} hover:opacity-90 text-white
-                    shadow-md hover:shadow-lg transition-all
-                    flex flex-col items-center justify-center gap-2
-                  `}
+                  className={cn(
+                    "h-24 text-lg font-semibold text-white",
+                    rec.color,
+                    "hover:opacity-90 shadow-md hover:shadow-lg transition-all",
+                    "flex flex-col items-center justify-center gap-2",
+                    isPriority && "ring-4 ring-red-300 ring-opacity-50 animate-pulse"
+                  )}
                 >
                   <Icon className="w-6 h-6" />
                   <span>{rec.title}</span>
+                  {isPriority && (
+                    <span className="text-xs font-normal opacity-90">Try this first</span>
+                  )}
                 </Button>
               );
             })}

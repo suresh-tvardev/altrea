@@ -29,6 +29,7 @@ const Configuration = () => {
   const [testResult, setTestResult] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [testMessage, setTestMessage] = useState<string>('');
   const [demoMode, setDemoMode] = useState<boolean>(false);
+  const [connectionMode, setConnectionMode] = useState<'localStorage' | 'streaming'>('localStorage');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -41,6 +42,9 @@ const Configuration = () => {
     // Load demo mode setting
     const savedDemoMode = storageService.getDemoMode();
     setDemoMode(savedDemoMode);
+    // Load connection mode setting
+    const savedConnectionMode = storageService.getConnectionMode();
+    setConnectionMode(savedConnectionMode);
   }, []);
 
   if (!mounted) return null;
@@ -55,30 +59,48 @@ const Configuration = () => {
     }
   };
 
-  const handleSave = () => {
-    if (!websocketUrl.trim()) {
-      toast({
-        title: 'Invalid URL',
-        description: 'Please enter a valid WebSocket URL (ws:// or wss://)',
-        variant: 'destructive',
-      });
-      return;
-    }
+  const handleConnectionModeChange = (checked: boolean) => {
+    const newMode = checked ? 'streaming' : 'localStorage';
+    setConnectionMode(newMode);
+  };
 
-    if (!validateUrl(websocketUrl)) {
-      toast({
-        title: 'Invalid URL',
-        description: 'WebSocket URL must start with ws:// or wss://',
-        variant: 'destructive',
-      });
-      return;
+  const handleSave = () => {
+    // If using streaming mode, validate WebSocket URL
+    if (connectionMode === 'streaming') {
+      if (!websocketUrl.trim()) {
+        toast({
+          title: 'Invalid URL',
+          description: 'Please enter a valid WebSocket URL (ws:// or wss://) for streaming mode',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      if (!validateUrl(websocketUrl)) {
+        toast({
+          title: 'Invalid URL',
+          description: 'WebSocket URL must start with ws:// or wss://',
+          variant: 'destructive',
+        });
+        return;
+      }
     }
 
     try {
-      storageService.saveWebSocketUrl(websocketUrl);
+      // Save connection mode
+      storageService.saveConnectionMode(connectionMode);
+      
+      // Save WebSocket URL only if using streaming mode
+      if (connectionMode === 'streaming') {
+        storageService.saveWebSocketUrl(websocketUrl);
+      } else {
+        // Clear WebSocket URL if switching to localStorage mode
+        storageService.saveWebSocketUrl(null);
+      }
+      
       toast({
         title: 'Configuration Saved',
-        description: 'Device connection settings have been saved. Restart the connection to apply changes.',
+        description: `Device connection mode set to ${connectionMode === 'streaming' ? 'Streaming API' : 'localStorage'}. Refresh the page to apply changes.`,
       });
       setConnectionStatus('disconnected');
     } catch (error) {
@@ -222,28 +244,77 @@ const Configuration = () => {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="websocket-url">WebSocket URL</Label>
-              <Input
-                id="websocket-url"
-                type="text"
-                placeholder="ws://localhost:8080/stream or wss://example.com/stream"
-                value={websocketUrl}
-                onChange={(e) => {
-                  setWebsocketUrl(e.target.value);
-                  setConnectionStatus('disconnected');
-                  setTestResult('idle');
-                  setTestMessage('');
-                }}
-                className="mt-2 font-mono text-sm"
+            {/* Connection Mode Toggle */}
+            <div className="flex items-center justify-between p-4 rounded-lg border bg-secondary/30">
+              <div className="flex-1">
+                <Label htmlFor="connection-mode" className="text-base font-semibold cursor-pointer">
+                  Connection Mode
+                </Label>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {connectionMode === 'streaming' 
+                    ? 'Using WebSocket streaming API for real-time data'
+                    : 'Using localStorage for simulator-based data (from stress simulator)'}
+                </p>
+              </div>
+              <Switch
+                id="connection-mode"
+                checked={connectionMode === 'streaming'}
+                onCheckedChange={handleConnectionModeChange}
               />
-              <p className="text-xs text-muted-foreground mt-2">
-                Enter a WebSocket URL (ws:// or wss://). Leave empty to use mock data.
-              </p>
             </div>
 
-            {/* Connection Status */}
-            {websocketUrl && (
+            <div className="flex items-center gap-2 text-sm">
+              <Badge variant={connectionMode === 'streaming' ? 'default' : 'secondary'}>
+                {connectionMode === 'streaming' ? 'Streaming API' : 'localStorage'}
+              </Badge>
+              <span className="text-muted-foreground">
+                {connectionMode === 'streaming' 
+                  ? 'Real-time WebSocket connection'
+                  : 'Simulator-based data via localStorage'}
+              </span>
+            </div>
+
+            {/* WebSocket URL - Only show when streaming mode is selected */}
+            {connectionMode === 'streaming' && (
+              <div>
+                <Label htmlFor="websocket-url">WebSocket URL</Label>
+                <Input
+                  id="websocket-url"
+                  type="text"
+                  placeholder="ws://localhost:8080/stream or wss://example.com/stream"
+                  value={websocketUrl}
+                  onChange={(e) => {
+                    setWebsocketUrl(e.target.value);
+                    setConnectionStatus('disconnected');
+                    setTestResult('idle');
+                    setTestMessage('');
+                  }}
+                  className="mt-2 font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-2">
+                  Enter a WebSocket URL (ws:// or wss://) for real-time data streaming.
+                </p>
+              </div>
+            )}
+
+            {/* localStorage Mode Info */}
+            {connectionMode === 'localStorage' && (
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <div className="flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium text-blue-900 mb-1">localStorage Mode</p>
+                    <p className="text-xs text-blue-700">
+                      In this mode, data comes from the stress simulator via localStorage. 
+                      Use the simulator page to trigger stress events that will be reflected in both elder and caregiver views.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Connection Status - Only show when streaming mode */}
+            {connectionMode === 'streaming' && websocketUrl && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-secondary/50">
                 {getStatusIcon()}
                 <div className="flex-1">
@@ -258,8 +329,8 @@ const Configuration = () => {
               </div>
             )}
 
-            {/* Test Result */}
-            {testResult !== 'idle' && (
+            {/* Test Result - Only show when streaming mode */}
+            {connectionMode === 'streaming' && testResult !== 'idle' && (
               <div className={cn(
                 "p-3 rounded-lg border",
                 testResult === 'success' && "bg-success/10 border-success/20",
@@ -290,24 +361,26 @@ const Configuration = () => {
                 <Save className="w-4 h-4 mr-2" />
                 Save Configuration
               </Button>
-              <Button
-                variant="outline"
-                onClick={handleTestConnection}
-                disabled={!websocketUrl.trim() || testResult === 'testing'}
-              >
-                <TestTube className="w-4 h-4 mr-2" />
-                Test Connection
-              </Button>
+              {connectionMode === 'streaming' && (
+                <Button
+                  variant="outline"
+                  onClick={handleTestConnection}
+                  disabled={!websocketUrl.trim() || testResult === 'testing'}
+                >
+                  <TestTube className="w-4 h-4 mr-2" />
+                  Test Connection
+                </Button>
+              )}
             </div>
 
-            {websocketUrl && (
+            {connectionMode === 'streaming' && websocketUrl && (
               <Button
                 variant="outline"
                 onClick={handleClear}
                 className="w-full"
               >
                 <XCircle className="w-4 h-4 mr-2" />
-                Clear & Use Mock Data
+                Clear WebSocket URL
               </Button>
             )}
           </CardContent>
@@ -397,22 +470,38 @@ const Configuration = () => {
           <CardContent className="space-y-4">
             <div className="space-y-3">
               <div>
-                <h4 className="text-sm font-semibold mb-2">WebSocket URL Format</h4>
-                <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-                  <li>Use <code className="px-1 py-0.5 bg-secondary rounded">ws://</code> for unencrypted connections</li>
-                  <li>Use <code className="px-1 py-0.5 bg-secondary rounded">wss://</code> for encrypted (SSL/TLS) connections</li>
-                  <li>Example: <code className="px-1 py-0.5 bg-secondary rounded">ws://localhost:8080/stream</code></li>
-                  <li>Example: <code className="px-1 py-0.5 bg-secondary rounded">wss://api.example.com/eeg/stream</code></li>
+                <h4 className="text-sm font-semibold mb-2">Connection Modes</h4>
+                <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
+                  <li>
+                    <strong>localStorage Mode:</strong> Data comes from the stress simulator via localStorage. 
+                    Perfect for testing and demonstrations. Use the simulator page to trigger stress events.
+                  </li>
+                  <li>
+                    <strong>Streaming API Mode:</strong> Real-time data via WebSocket connection. 
+                    Requires a WebSocket server running and configured URL.
+                  </li>
                 </ul>
               </div>
 
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Expected Data Format</h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  The WebSocket server should send JSON messages with the following structure:
-                </p>
-                <pre className="text-xs bg-secondary p-3 rounded-lg overflow-x-auto">
-                  {`{
+              {connectionMode === 'streaming' && (
+                <>
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">WebSocket URL Format</h4>
+                    <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+                      <li>Use <code className="px-1 py-0.5 bg-secondary rounded">ws://</code> for unencrypted connections</li>
+                      <li>Use <code className="px-1 py-0.5 bg-secondary rounded">wss://</code> for encrypted (SSL/TLS) connections</li>
+                      <li>Example: <code className="px-1 py-0.5 bg-secondary rounded">ws://localhost:8080/stream</code></li>
+                      <li>Example: <code className="px-1 py-0.5 bg-secondary rounded">wss://api.example.com/eeg/stream</code></li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Expected Data Format</h4>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      The WebSocket server should send JSON messages with the following structure:
+                    </p>
+                    <pre className="text-xs bg-secondary p-3 rounded-lg overflow-x-auto">
+                      {`{
   "timestamp": "2024-01-15T10:30:00Z",
   "alpha": 8.5,
   "beta": 15.2,
@@ -420,15 +509,17 @@ const Configuration = () => {
   "delta": 1.2,
   "gamma": 45.8
 }`}
-                </pre>
-              </div>
+                    </pre>
+                  </div>
 
-              <div>
-                <h4 className="text-sm font-semibold mb-2">Mock Data Mode</h4>
-                <p className="text-sm text-muted-foreground">
-                  If no WebSocket URL is configured, the application will use simulated/mock data for testing and development purposes.
-                </p>
-              </div>
+                  <div>
+                    <h4 className="text-sm font-semibold mb-2">Mock Data Mode</h4>
+                    <p className="text-sm text-muted-foreground">
+                      If no WebSocket URL is configured in streaming mode, the application will use simulated/mock data for testing and development purposes.
+                    </p>
+                  </div>
+                </>
+              )}
 
               <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
                 <div className="flex items-start gap-2">
