@@ -13,6 +13,10 @@ import { InterventionDialog } from '@/components/dashboard/InterventionDialog';
 import { useEEGSimulation } from '@/hooks/useEEGSimulation';
 import { useRole } from '@/contexts/RoleContext';
 import { isAuthenticatedButMissingProfile } from '@/app/actions/user';
+import { login } from '@/app/actions/auth';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -22,8 +26,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, AlertCircle, Info } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Info, Zap, Eye, ExternalLink, Loader2 } from 'lucide-react';
 import type { Alert } from '@/types/eeg';
+
+// Demo account credentials for caregiver
+const DEMO_CAREGIVER = {
+    email: 'john.smith@altrea.com',
+    password: 'Demo123!',
+};
 
 export default function CaregiverDashboard() {
     const router = useRouter();
@@ -47,6 +57,7 @@ export default function CaregiverDashboard() {
     // Alert popup state (for localStorage-based alerts)
     const [alertPopup, setAlertPopup] = useState<Alert | null>(null);
     const processedAlertIds = useRef<Set<string>>(new Set());
+    const [isLoggingIn, setIsLoggingIn] = useState<'simulator' | 'comparison' | null>(null);
 
     // Check if user is authenticated but missing profile
     useEffect(() => {
@@ -86,6 +97,11 @@ export default function CaregiverDashboard() {
             .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())[0];
         
         if (newAlert) {
+            // If there's already a popup open for a different alert, allow the new one to replace it
+            if (alertPopup && alertPopup.id !== newAlert.id) {
+                // Remove the old alert from processed set so it can be shown again if needed
+                processedAlertIds.current.delete(alertPopup.id);
+            }
             processedAlertIds.current.add(newAlert.id);
             setAlertPopup(newAlert);
         }
@@ -94,6 +110,8 @@ export default function CaregiverDashboard() {
     const handleAlertPopupClose = () => {
         if (alertPopup) {
             acknowledgeAlert(alertPopup.id);
+            // Remove from processed set so new alerts can show
+            processedAlertIds.current.delete(alertPopup.id);
             setAlertPopup(null);
         }
     };
@@ -111,6 +129,33 @@ export default function CaregiverDashboard() {
         }
     };
 
+    const handleLoginAndOpen = async (page: 'simulator' | 'comparison') => {
+        setIsLoggingIn(page);
+        try {
+            const formData = new FormData();
+            formData.append('email', DEMO_CAREGIVER.email);
+            formData.append('password', DEMO_CAREGIVER.password);
+            
+            const result = await login(formData);
+            if (result.error) {
+                toast.error(result.error);
+                setIsLoggingIn(null);
+                return;
+            }
+
+            toast.success('Logged in as Caregiver');
+            
+            // Open the appropriate page in a new tab
+            const url = page === 'simulator' ? '/simulator' : '/comparison';
+            window.open(url, '_blank');
+            
+            setIsLoggingIn(null);
+        } catch (error: any) {
+            toast.error(error.message || 'Login failed');
+            setIsLoggingIn(null);
+        }
+    };
+
     // Show loading until profile check and role are ready (prevents flash of wrong content / missing topbar icons)
     if (checkingProfile || roleLoading || isElder) {
         return (
@@ -122,6 +167,61 @@ export default function CaregiverDashboard() {
 
     return (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {/* CTA Buttons for Simulator and Comparison */}
+            <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-purple-50">
+                <CardContent className="p-4">
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <div>
+                            <h3 className="text-lg font-semibold mb-1">Quick Access Tools</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Test stress scenarios or compare views side-by-side
+                            </p>
+                        </div>
+                        <div className="flex gap-3">
+                            <Button
+                                onClick={() => handleLoginAndOpen('simulator')}
+                                disabled={isLoggingIn !== null}
+                                size="lg"
+                                className="gap-2"
+                            >
+                                {isLoggingIn === 'simulator' ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Opening...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Zap className="w-4 h-4" />
+                                        Simulator
+                                        <ExternalLink className="w-4 h-4" />
+                                    </>
+                                )}
+                            </Button>
+                            <Button
+                                onClick={() => handleLoginAndOpen('comparison')}
+                                disabled={isLoggingIn !== null}
+                                size="lg"
+                                variant="outline"
+                                className="gap-2"
+                            >
+                                {isLoggingIn === 'comparison' ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" />
+                                        Opening...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Eye className="w-4 h-4" />
+                                        Comparison
+                                        <ExternalLink className="w-4 h-4" />
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Quick Stats */}
             <section className="mb-6">
                 <QuickStats data={historicalData} />

@@ -101,8 +101,9 @@ export const alertService = {
     const timeSinceLastAlert = now.getTime() - lastAlertTime.getTime();
 
     // Prevent duplicate alerts within time windows
+    // Minimal cooldown for critical alerts to allow testing multiple triggers from simulator
     const cooldownPeriods = {
-      critical: 60000,   // 1 minute
+      critical: 2000,    // 2 seconds (minimal cooldown for testing)
       warning: 300000,   // 5 minutes
       info: 600000,      // 10 minutes
     };

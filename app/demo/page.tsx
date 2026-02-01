@@ -19,7 +19,9 @@ import {
     ArrowRight,
     PlayCircle,
     LogIn,
-    Trash2
+    Trash2,
+    Eye,
+    ExternalLink
 } from 'lucide-react';
 import { setupDemoEnvironment, clearDemoEnvironment, checkDemoUsersExist } from '@/app/actions/demo';
 import { login } from '@/app/actions/auth';
@@ -110,6 +112,7 @@ export default function DemoPage() {
     const [isClearing, setIsClearing] = useState(false);
     const [checkingDemo, setCheckingDemo] = useState(true);
     const [demoUsersExist, setDemoUsersExist] = useState(false);
+    const [isLoggingIn, setIsLoggingIn] = useState<'simulator' | 'comparison' | null>(null);
     const router = useRouter();
 
     // Check if demo users exist on mount
@@ -197,15 +200,46 @@ export default function DemoPage() {
         }
     };
 
+    const handleLoginAndOpen = async (page: 'simulator' | 'comparison') => {
+        setIsLoggingIn(page);
+        try {
+            // Use caregiver demo account
+            const caregiverAccount = DEMO_ACCOUNTS.find(acc => acc.name === 'Smith Family Care');
+            if (!caregiverAccount) {
+                toast.error('Demo account not found');
+                setIsLoggingIn(null);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('email', caregiverAccount.caregiver.email);
+            formData.append('password', caregiverAccount.caregiver.password);
+            
+            const result = await login(formData);
+            if (result.error) {
+                toast.error(result.error);
+                setIsLoggingIn(null);
+                return;
+            }
+
+            toast.success('Logged in as Caregiver');
+            
+            // Open the appropriate page in a new tab
+            const url = page === 'simulator' ? '/simulator' : '/comparison';
+            window.open(url, '_blank');
+            
+            setIsLoggingIn(null);
+        } catch (error: any) {
+            toast.error(error.message || 'Login failed');
+            setIsLoggingIn(null);
+        }
+    };
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-4 md:p-8">
             <div className="max-w-7xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="text-center space-y-4">
-                    <div className="inline-flex items-center px-4 py-2 rounded-full bg-primary/10 text-primary mb-4">
-                        <PlayCircle className="w-5 h-5 mr-2" />
-                        <span className="font-semibold">Demo & Validation Environment</span>
-                    </div>
                     <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
                         Altrea Platform Demo
                     </h1>
@@ -294,73 +328,130 @@ export default function DemoPage() {
                                 ))}
                             </div>
                         )}
+
+                        {/* CTA Buttons for Simulator and Comparison */}
+                        {demoUsersExist && (
+                            <div className="mt-6 pt-6 border-t border-gray-200">
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div>
+                                        <h4 className="text-lg font-semibold mb-1">Quick Access Tools</h4>
+                                        <p className="text-sm text-muted-foreground">
+                                            Test stress scenarios or compare views side-by-side as Caregiver
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-3">
+                                        <Button
+                                            onClick={() => handleLoginAndOpen('simulator')}
+                                            disabled={isLoggingIn !== null}
+                                            size="lg"
+                                            className="gap-2"
+                                        >
+                                            {isLoggingIn === 'simulator' ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Opening...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Zap className="w-4 h-4" />
+                                                    Simulator
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </>
+                                            )}
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleLoginAndOpen('comparison')}
+                                            disabled={isLoggingIn !== null}
+                                            size="lg"
+                                            variant="outline"
+                                            className="gap-2"
+                                        >
+                                            {isLoggingIn === 'comparison' ? (
+                                                <>
+                                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                                    Opening...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Eye className="w-4 h-4" />
+                                                    Comparison
+                                                    <ExternalLink className="w-4 h-4" />
+                                                </>
+                                            )}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
 
-                {/* Demo Accounts */}
-                <div>
-                    <h2 className="text-3xl font-bold mb-6 text-center">Demo Accounts</h2>
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        {DEMO_ACCOUNTS.map((account, idx) => (
-                            <Card key={idx} className="border-2">
-                                <CardHeader>
-                                    <div className="flex items-center justify-between">
-                                        <CardTitle className="text-2xl">{account.name}</CardTitle>
-                                        <Badge variant="outline">Demo Account</Badge>
-                                    </div>
-                                    <CardDescription>{account.description}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="space-y-4">
-                                    {/* Elder Login */}
-                                    <div className="p-4 bg-pink-50 rounded-lg border border-pink-200">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <UserRound className="w-5 h-5 text-pink-600" />
-                                            <span className="font-semibold">Elder User</span>
+                {/* Demo Accounts and Validation Guide Side by Side */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Demo Accounts */}
+                    <div>
+                        <h2 className="text-3xl font-bold mb-6 text-center">Demo Accounts</h2>
+                        <div className="grid grid-cols-1 gap-6">
+                            {DEMO_ACCOUNTS.filter(account => account.name === 'Smith Family Care').map((account, idx) => (
+                                <Card key={idx} className="border-2">
+                                    <CardHeader>
+                                        <div className="flex items-center justify-between">
+                                            <CardTitle className="text-2xl">{account.name}</CardTitle>
+                                            <Badge variant="outline">Demo Account</Badge>
                                         </div>
-                                        <div className="text-sm text-muted-foreground mb-3">
-                                            <div><strong>Name:</strong> {account.elder.name}</div>
-                                            <div><strong>Email:</strong> {account.elder.email}</div>
-                                            <div><strong>Password:</strong> {account.elder.password}</div>
+                                        <CardDescription>{account.description}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        {/* Elder Login */}
+                                        <div className="p-4 bg-pink-50 rounded-lg border border-pink-200">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <UserRound className="w-5 h-5 text-pink-600" />
+                                                <span className="font-semibold">Elder User</span>
+                                            </div>
+                                            <div className="text-sm text-muted-foreground mb-3">
+                                                <div><strong>Name:</strong> {account.elder.name}</div>
+                                                <div><strong>Email:</strong> {account.elder.email}</div>
+                                                <div><strong>Password:</strong> {account.elder.password}</div>
+                                            </div>
+                                            <Button
+                                                onClick={() => handleQuickLogin(account.elder.email, account.elder.password, 'elder')}
+                                                variant="outline"
+                                                className="w-full"
+                                                size="sm"
+                                            >
+                                                <LogIn className="w-4 h-4 mr-2" />
+                                                Login as Elder
+                                            </Button>
                                         </div>
-                                        <Button
-                                            onClick={() => handleQuickLogin(account.elder.email, account.elder.password, 'elder')}
-                                            variant="outline"
-                                            className="w-full"
-                                            size="sm"
-                                        >
-                                            <LogIn className="w-4 h-4 mr-2" />
-                                            Login as Elder
-                                        </Button>
-                                    </div>
 
-                                    {/* Caregiver Login */}
-                                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                        <div className="flex items-center gap-2 mb-2">
-                                            <HeartHandshake className="w-5 h-5 text-blue-600" />
-                                            <span className="font-semibold">Caregiver User</span>
+                                        {/* Caregiver Login */}
+                                        <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <HeartHandshake className="w-5 h-5 text-blue-600" />
+                                                <span className="font-semibold">Caregiver User</span>
+                                            </div>
+                                            <div className="text-sm text-muted-foreground mb-3">
+                                                <div><strong>Name:</strong> {account.caregiver.name}</div>
+                                                <div><strong>Email:</strong> {account.caregiver.email}</div>
+                                                <div><strong>Password:</strong> {account.caregiver.password}</div>
+                                            </div>
+                                            <Button
+                                                onClick={() => handleQuickLogin(account.caregiver.email, account.caregiver.password, 'caregiver')}
+                                                variant="outline"
+                                                className="w-full"
+                                                size="sm"
+                                            >
+                                                <LogIn className="w-4 h-4 mr-2" />
+                                                Login as Caregiver
+                                            </Button>
                                         </div>
-                                        <div className="text-sm text-muted-foreground mb-3">
-                                            <div><strong>Name:</strong> {account.caregiver.name}</div>
-                                            <div><strong>Email:</strong> {account.caregiver.email}</div>
-                                            <div><strong>Password:</strong> {account.caregiver.password}</div>
-                                        </div>
-                                        <Button
-                                            onClick={() => handleQuickLogin(account.caregiver.email, account.caregiver.password, 'caregiver')}
-                                            variant="outline"
-                                            className="w-full"
-                                            size="sm"
-                                        >
-                                            <LogIn className="w-4 h-4 mr-2" />
-                                            Login as Caregiver
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
                     </div>
-                </div>
 
-                {/* Step-by-Step Validation Guide */}
+                    {/* Step-by-Step Validation Guide */}
                 <Card className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200">
                     <CardHeader>
                         <CardTitle className="text-2xl flex items-center gap-2">
@@ -517,15 +608,15 @@ export default function DemoPage() {
                                         </div>
                                         <div>
                                             <p className="font-medium">Trigger Critical Stress</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Click <strong>"Critical Stress"</strong> (90%). Verify:
+                                            <div className="text-sm text-muted-foreground">
+                                                <p>Click <strong>"Critical Stress"</strong> (90%). Verify:</p>
                                                 <ul className="list-disc list-inside mt-1 ml-2">
                                                     <li>Emotional state shows "Stressed" or "Fear"</li>
                                                     <li>Stress level exceeds 80%</li>
                                                     <li>A <strong>CRITICAL</strong> alert appears in the Active Alerts panel</li>
                                                     <li>Alert shows it was sent to caregivers</li>
                                                 </ul>
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-3">
@@ -569,14 +660,14 @@ export default function DemoPage() {
                                         </div>
                                         <div>
                                             <p className="font-medium">Verify Alerts Panel</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Check the <strong>Alerts Panel</strong> on the right side. You should see:
+                                            <div className="text-sm text-muted-foreground">
+                                                <p>Check the <strong>Alerts Panel</strong> on the right side. You should see:</p>
                                                 <ul className="list-disc list-inside mt-1 ml-2">
                                                     <li>The critical alert triggered from the elder's simulator</li>
                                                     <li>Alert type, message, and timestamp</li>
                                                     <li>Option to acknowledge the alert</li>
                                                 </ul>
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-3">
@@ -585,8 +676,8 @@ export default function DemoPage() {
                                         </div>
                                         <div>
                                             <p className="font-medium">Explore Dashboard Components</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                Verify all dashboard sections are visible:
+                                            <div className="text-sm text-muted-foreground">
+                                                <p>Verify all dashboard sections are visible:</p>
                                                 <ul className="list-disc list-inside mt-1 ml-2">
                                                     <li><strong>Quick Stats:</strong> Shows emotional state summary</li>
                                                     <li><strong>Emotional State Indicator:</strong> Current state visualization</li>
@@ -594,7 +685,7 @@ export default function DemoPage() {
                                                     <li><strong>Historical Chart:</strong> Trends over time</li>
                                                     <li><strong>Insights Panel:</strong> AI-generated recommendations</li>
                                                 </ul>
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-3">
@@ -638,16 +729,16 @@ export default function DemoPage() {
                                         </div>
                                         <div>
                                             <p className="font-medium">Care Team Management</p>
-                                            <p className="text-sm text-muted-foreground">
-                                                As caregiver, go to <Link href="/settings" className="text-primary underline">Settings</Link>. 
-                                                Verify you can:
+                                            <div className="text-sm text-muted-foreground">
+                                                <p>As caregiver, go to <Link href="/settings" className="text-primary underline">Settings</Link>. 
+                                                Verify you can:</p>
                                                 <ul className="list-disc list-inside mt-1 ml-2">
                                                     <li>View all care team members</li>
                                                     <li>Add new caregivers/family members</li>
                                                     <li>Set alert thresholds</li>
                                                     <li>Configure alert preferences</li>
                                                 </ul>
-                                            </p>
+                                            </div>
                                         </div>
                                     </div>
                                     <div className="flex gap-3">
@@ -742,6 +833,7 @@ export default function DemoPage() {
                         </div>
                     </CardContent>
                 </Card>
+                </div>
 
                 {/* Quick Links */}
                 <Card className="border-2 border-primary/20">
