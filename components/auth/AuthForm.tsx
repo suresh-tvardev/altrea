@@ -1,12 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { BrainCircuit, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { login, signup } from "@/app/actions/auth";
 import { checkSetupStatus } from "@/app/actions/setup";
 import { toast } from "sonner";
@@ -18,8 +19,16 @@ interface AuthFormProps {
 }
 
 export function AuthForm({ type }: AuthFormProps) {
+    const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const emailFromUrl = searchParams.get("email") ?? "";
+
+    useEffect(() => {
+        if (emailFromUrl && type === "login") {
+            setEmail(decodeURIComponent(emailFromUrl));
+        }
+    }, [emailFromUrl, type]);
     const [loading, setLoading] = useState(false);
     const router = useRouter();
     const { refetchRole } = useRole();
@@ -126,6 +135,11 @@ export function AuthForm({ type }: AuthFormProps) {
                             className="h-12"
                         />
                     </div>
+                    {type === "login" && emailFromUrl && (
+                        <p className="text-xs text-muted-foreground">
+                            Opened from Settings to view as this user. Demo accounts use password <strong>Demo123!</strong>
+                        </p>
+                    )}
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-4">
                     <Button className="w-full h-12 text-lg font-semibold" disabled={loading}>

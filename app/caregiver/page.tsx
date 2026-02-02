@@ -29,9 +29,9 @@ import {
 import { AlertTriangle, AlertCircle, Info, Zap, Eye, ExternalLink, Loader2 } from 'lucide-react';
 import type { Alert } from '@/types/eeg';
 
-// Demo account credentials for caregiver
+// Demo account credentials for caregiver (Garcia Care Team)
 const DEMO_CAREGIVER = {
-    email: 'john.smith@altrea.com',
+    email: 'saraz@mit.edu',
     password: 'Demo123!',
 };
 
@@ -167,60 +167,11 @@ export default function CaregiverDashboard() {
 
     return (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {/* CTA Buttons for Simulator and Comparison */}
-            <Card className="mb-6 border-2 border-primary/20 bg-gradient-to-r from-primary/5 to-purple-50">
-                <CardContent className="p-4">
-                    <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-1">Quick Access Tools</h3>
-                            <p className="text-sm text-muted-foreground">
-                                Test stress scenarios or compare views side-by-side
-                            </p>
-                        </div>
-                        <div className="flex gap-3">
-                            <Button
-                                onClick={() => handleLoginAndOpen('simulator')}
-                                disabled={isLoggingIn !== null}
-                                size="lg"
-                                className="gap-2"
-                            >
-                                {isLoggingIn === 'simulator' ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Opening...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Zap className="w-4 h-4" />
-                                        Simulator
-                                        <ExternalLink className="w-4 h-4" />
-                                    </>
-                                )}
-                            </Button>
-                            <Button
-                                onClick={() => handleLoginAndOpen('comparison')}
-                                disabled={isLoggingIn !== null}
-                                size="lg"
-                                variant="outline"
-                                className="gap-2"
-                            >
-                                {isLoggingIn === 'comparison' ? (
-                                    <>
-                                        <Loader2 className="w-4 h-4 animate-spin" />
-                                        Opening...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Eye className="w-4 h-4" />
-                                        Comparison
-                                        <ExternalLink className="w-4 h-4" />
-                                    </>
-                                )}
-                            </Button>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
+            {/* Weekly Overview & Personalized Insights - Top */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                <HistoricalChart data={historicalData} />
+                <InsightsPanel insights={insights} />
+            </div>
 
             {/* Quick Stats */}
             <section className="mb-6">
@@ -233,14 +184,12 @@ export default function CaregiverDashboard() {
                 <div className="lg:col-span-2 space-y-6">
                     <EmotionalStateIndicator analysis={analysis} />
                     <EEGWaveform readings={readings} isConnected={isConnected} />
-                    <HistoricalChart data={historicalData} />
                 </div>
 
-                {/* Right Column - Alerts, Caregivers, Insights */}
+                {/* Right Column - Alerts, Caregivers */}
                 <div className="space-y-6">
                     <AlertsPanel alerts={alerts} onAcknowledge={acknowledgeAlert} />
                     <CaregiversPanel />
-                    <InsightsPanel insights={insights} />
                 </div>
             </div>
 

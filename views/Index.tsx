@@ -26,6 +26,12 @@ const Index = () => {
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Weekly Overview & Personalized Insights - Top */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <HistoricalChart data={historicalData} />
+          <InsightsPanel insights={insights} />
+        </div>
+
         {/* Quick Stats */}
         <section className="mb-6">
           <QuickStats data={historicalData} />
@@ -37,14 +43,12 @@ const Index = () => {
           <div className="lg:col-span-2 space-y-6">
             <EmotionalStateIndicator analysis={analysis} />
             <EEGWaveform readings={readings} isConnected={isConnected} />
-            <HistoricalChart data={historicalData} />
           </div>
 
-          {/* Right Column - Alerts, Caregivers, Insights */}
+          {/* Right Column - Alerts, Caregivers */}
           <div className="space-y-6">
             <AlertsPanel alerts={alerts} onAcknowledge={acknowledgeAlert} />
             <CaregiversPanel />
-            <InsightsPanel insights={insights} />
           </div>
         </div>
 

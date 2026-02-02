@@ -1,9 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
 import {
@@ -19,9 +27,11 @@ import { storageService } from '@/services/storage';
 import { alertService } from '@/services/alertService';
 import {
   getCareTeamMembers,
+  getElderForAccount,
   addCareTeamMember,
   updateCareTeamMember,
-  deleteCareTeamMember
+  deleteCareTeamMember,
+  updateElderProfile
 } from '@/app/actions/settings';
 import type { Caregiver, AlertThresholds } from '@/types/eeg';
 import {
@@ -38,14 +48,27 @@ import {
   Heart,
   Brain,
   TestTube,
-  Wifi
+  Wifi,
+  WifiOff,
+  CheckCircle2,
+  XCircle,
+  RefreshCw,
+  Zap,
+  Upload,
+  Camera,
+  Eye
 } from 'lucide-react';
-import Link from 'next/link';
 import { cn } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
+const getAvatarUrl = (name: string, fallbackUrl?: string | null) =>
+  fallbackUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=96&background=6366f1&color=fff`;
 
 const Settings = () => {
   const { toast } = useToast();
-  const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
+  const [caregivers, setCaregivers] = useState<(Caregiver & { avatarUrl?: string | null })[]>([]);
+  const [elder, setElder] = useState<{ id: string; name: string; email?: string; phone?: string; avatarUrl?: string | null } | null>(null);
+  const [isEditingElder, setIsEditingElder] = useState(false);
   const [thresholds, setThresholds] = useState<AlertThresholds>({
     stressLevel: 80,
     anxietyLevel: 70,
@@ -53,7 +76,8 @@ const Settings = () => {
   });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isAdding, setIsAdding] = useState(false);
-  const [formData, setFormData] = useState<Partial<Caregiver> & { role?: 'caregiver' | 'elder' }>({
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formData, setFormData] = useState<Partial<Caregiver> & { role?: 'caregiver' | 'elder'; avatarUrl?: string | null }>({
     name: '',
     relationship: '',
     phone: '',
@@ -65,20 +89,42 @@ const Settings = () => {
       warning: true,
       info: false,
     },
+    avatarUrl: null,
   });
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Data Stream Config state
+  const [websocketUrl, setWebsocketUrl] = useState<string>('');
+  const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
+  const [testResult, setTestResult] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
+  const [testMessage, setTestMessage] = useState<string>('');
+  const [demoMode, setDemoMode] = useState<boolean>(false);
+  const [connectionMode, setConnectionMode] = useState<'localStorage' | 'streaming'>('localStorage');
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     loadData();
     // Initialize with default thresholds if none exist
     const currentThresholds = storageService.getAlertThresholds();
-    if (!localStorage.getItem('altrea_alert_thresholds')) {
+    if (typeof window !== 'undefined' && !localStorage.getItem('altrea_alert_thresholds')) {
       storageService.saveAlertThresholds(currentThresholds);
     }
+    // Load Data Stream Config
+    const savedUrl = storageService.getWebSocketUrl();
+    if (savedUrl) setWebsocketUrl(savedUrl);
+    setDemoMode(storageService.getDemoMode());
+    setConnectionMode(storageService.getConnectionMode());
   }, []);
 
   const loadData = async () => {
-    // Load caregivers from Server Actions (DB)
-    const loadedCaregivers = await getCareTeamMembers();
+    // Load elder and caregivers from Server Actions (DB)
+    const [elderData, loadedCaregivers] = await Promise.all([
+      getElderForAccount(),
+      getCareTeamMembers(),
+    ]);
+    setElder(elderData ?? null);
     setCaregivers(loadedCaregivers);
 
     // Load thresholds from Local Storage (for now)
@@ -87,6 +133,43 @@ const Settings = () => {
   };
 
   const handleSaveCaregiver = async () => {
+    if (isEditingElder) {
+      // Save elder profile
+      if (!formData.name) {
+        toast({
+          title: 'Validation Error',
+          description: 'Name is required.',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      try {
+        const result = await updateElderProfile(editingId!, {
+          name: formData.name,
+          avatarUrl: formData.avatarUrl,
+        });
+
+        if (result.error) throw new Error(result.error);
+
+        toast({
+          title: 'Elder Profile Updated',
+          description: `${formData.name} has been updated successfully.`,
+        });
+        await loadData();
+        resetForm();
+      } catch (error) {
+        console.error(error);
+        toast({
+          title: 'Error',
+          description: 'Failed to update elder profile. Please try again.',
+          variant: 'destructive',
+        });
+      }
+      return;
+    }
+
+    // Regular caregiver save
     if (!formData.name || !formData.email || !formData.phone) {
       toast({
         title: 'Validation Error',
@@ -150,10 +233,47 @@ const Settings = () => {
     }
   };
 
-  const handleEditCaregiver = (caregiver: Caregiver) => {
-    setFormData({ ...caregiver, role: (caregiver as any).role || 'caregiver' });
+  const handleEditCaregiver = (caregiver: Caregiver & { avatarUrl?: string | null }) => {
+    setFormData({ 
+      ...caregiver, 
+      role: (caregiver as any).role || 'caregiver',
+      avatarUrl: caregiver.avatarUrl || null,
+    });
+    setPreviewImage(caregiver.avatarUrl || null);
     setEditingId(caregiver.id);
     setIsAdding(false);
+    setIsEditingElder(false);
+    setDialogOpen(true);
+  };
+
+  const handleEditElder = () => {
+    if (!elder) return;
+    setFormData({
+      name: elder.name,
+      email: elder.email || '',
+      phone: elder.phone || '',
+      relationship: 'Elder',
+      role: 'elder',
+      isPrimary: false,
+      alertPreferences: {
+        critical: true,
+        warning: true,
+        info: false,
+      },
+      avatarUrl: elder.avatarUrl || null,
+    });
+    setPreviewImage(elder.avatarUrl || null);
+    setEditingId(elder.id);
+    setIsEditingElder(true);
+    setIsAdding(false);
+    setDialogOpen(true);
+  };
+
+  const handleAddCaregiver = () => {
+    resetForm();
+    setIsAdding(true);
+    setIsEditingElder(false);
+    setDialogOpen(true);
   };
 
   const resetForm = () => {
@@ -169,9 +289,77 @@ const Settings = () => {
         warning: true,
         info: false,
       },
+      avatarUrl: null,
     });
+    setPreviewImage(null);
     setEditingId(null);
     setIsAdding(false);
+    setIsEditingElder(false);
+    setDialogOpen(false);
+  };
+
+  const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      toast({
+        title: 'Invalid file type',
+        description: 'Please select an image file.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File too large',
+        description: 'Please select an image smaller than 2MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewImage(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+
+    // Upload via API route
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append('file', file);
+
+      const response = await fetch('/api/upload-avatar', {
+        method: 'POST',
+        body: uploadFormData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok || result.error) {
+        throw new Error(result.error || 'Upload failed');
+      }
+
+      setFormData(prev => ({ ...prev, avatarUrl: result.url }));
+      toast({
+        title: 'Image uploaded',
+        description: 'Profile image uploaded successfully.',
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: 'Upload failed',
+        description: error instanceof Error ? error.message : 'Failed to upload image. Please try again.',
+        variant: 'destructive',
+      });
+      // Reset preview on error
+      setPreviewImage(formData.avatarUrl || null);
+    }
   };
 
   const handleSetPrimary = async (id: string) => {
@@ -227,23 +415,115 @@ const Settings = () => {
     });
   };
 
+  // Data Stream Config helpers
+  const validateUrl = (url: string): boolean => {
+    if (!url.trim()) return false;
+    try {
+      const urlObj = new URL(url);
+      return urlObj.protocol === 'ws:' || urlObj.protocol === 'wss:';
+    } catch {
+      return false;
+    }
+  };
+
+  const handleConnectionModeChange = (checked: boolean) => {
+    const newMode = checked ? 'streaming' : 'localStorage';
+    setConnectionMode(newMode);
+  };
+
+  const handleSaveStreamConfig = () => {
+    if (connectionMode === 'streaming') {
+      if (!websocketUrl.trim()) {
+        toast({ title: 'Invalid URL', description: 'Please enter a valid WebSocket URL for streaming mode', variant: 'destructive' });
+        return;
+      }
+      if (!validateUrl(websocketUrl)) {
+        toast({ title: 'Invalid URL', description: 'WebSocket URL must start with ws:// or wss://', variant: 'destructive' });
+        return;
+      }
+    }
+    try {
+      storageService.saveConnectionMode(connectionMode);
+      if (connectionMode === 'streaming') storageService.saveWebSocketUrl(websocketUrl);
+      else storageService.saveWebSocketUrl(null);
+      toast({ title: 'Configuration Saved', description: `Connection mode set to ${connectionMode === 'streaming' ? 'Streaming API' : 'localStorage'}. Refresh to apply.` });
+      setConnectionStatus('disconnected');
+    } catch {
+      toast({ title: 'Error', description: 'Failed to save configuration', variant: 'destructive' });
+    }
+  };
+
+  const handleClearStreamUrl = () => {
+    setWebsocketUrl('');
+    storageService.saveWebSocketUrl(null);
+    setConnectionStatus('disconnected');
+    setTestResult('idle');
+    setTestMessage('');
+    toast({ title: 'Configuration Cleared', description: 'WebSocket settings cleared. Simulated data will be used.' });
+  };
+
+  const handleTestConnection = async () => {
+    if (!websocketUrl.trim() || !validateUrl(websocketUrl)) {
+      toast({ title: 'Invalid URL', description: 'Please enter a valid WebSocket URL before testing', variant: 'destructive' });
+      return;
+    }
+    setTestResult('testing');
+    setTestMessage('Connecting...');
+    try {
+      const ws = new WebSocket(websocketUrl);
+      const timeout = setTimeout(() => {
+        ws.close();
+        setTestResult('failed');
+        setTestMessage('Connection timeout.');
+        toast({ title: 'Connection Failed', description: 'Could not connect within timeout.', variant: 'destructive' });
+      }, 5000);
+      ws.onopen = () => {
+        clearTimeout(timeout);
+        setTestResult('success');
+        setTestMessage('Connected!');
+        setConnectionStatus('connected');
+        toast({ title: 'Connection Successful', description: 'Device connected.' });
+        ws.close();
+      };
+      ws.onerror = () => {
+        clearTimeout(timeout);
+        setTestResult('failed');
+        setTestMessage('Failed to connect.');
+        setConnectionStatus('error');
+        toast({ title: 'Connection Error', description: 'Could not establish connection.', variant: 'destructive' });
+      };
+    } catch (error) {
+      setTestResult('failed');
+      setTestMessage(String(error));
+      toast({ title: 'Test Failed', description: 'An error occurred.', variant: 'destructive' });
+    }
+  };
+
+  const getStreamStatusIcon = () => {
+    switch (connectionStatus) {
+      case 'connected': return <CheckCircle2 className="w-4 h-4 text-success" />;
+      case 'connecting': return <RefreshCw className="w-4 h-4 text-warning animate-spin" />;
+      case 'error': return <XCircle className="w-4 h-4 text-alert" />;
+      default: return <WifiOff className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
+  const getStreamStatusBadge = () => {
+    switch (connectionStatus) {
+      case 'connected': return <Badge className="bg-success text-xs">Connected</Badge>;
+      case 'connecting': return <Badge className="bg-warning text-xs">Connecting</Badge>;
+      case 'error': return <Badge variant="destructive" className="text-xs">Error</Badge>;
+      default: return <Badge variant="secondary" className="text-xs">Disconnected</Badge>;
+    }
+  };
+
+  if (!mounted) return null;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      <PageHeader
-        title="Settings"
-        icon={SettingsIcon}
-        backTo="/"
-        actions={
-          <Link href="/configuration">
-            <Button variant="outline">
-              <Wifi className="w-4 h-4 mr-2" />
-              Data Stream Config
-            </Button>
-          </Link>
-        }
-      />
+      <PageHeader title="Settings" icon={SettingsIcon} backTo="/" />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Caregivers Management */}
         <Card>
           <CardHeader>
@@ -256,158 +536,53 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Add/Edit Form */}
-            {(isAdding || editingId) && (
-              <Card className="bg-secondary/30">
-                <CardContent className="pt-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Name *</Label>
-                      <Input
-                        id="name"
-                        value={formData.name || ''}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        placeholder="John Doe"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="role">Role</Label>
-                      <Select
-                        value={formData.role}
-                        onValueChange={(value: 'caregiver' | 'elder') => setFormData({ ...formData, role: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="caregiver">Caregiver / Family</SelectItem>
-                          <SelectItem value="elder">Elder / Patient</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="relationship">Relationship</Label>
-                      <Input
-                        id="relationship"
-                        value={formData.relationship || ''}
-                        onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
-                        placeholder="Family, Doctor, etc."
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email *</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email || ''}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="email@example.com"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Phone *</Label>
-                    <Input
-                      id="phone"
-                      type="tel"
-                      value={formData.phone || ''}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="+1 (555) 123-4567"
-                    />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={formData.isPrimary || false}
-                        onCheckedChange={(checked) => setFormData({ ...formData, isPrimary: checked })}
-                      />
-                      <Label>Set as Primary Caregiver</Label>
-                    </div>
-                  </div>
-                  <div className="space-y-3 pt-2 border-t">
-                    <Label>Alert Preferences</Label>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="critical" className="text-sm font-normal">
-                          Critical Alerts
-                        </Label>
-                        <Switch
-                          id="critical"
-                          checked={formData.alertPreferences?.critical ?? true}
-                          onCheckedChange={(checked) =>
-                            setFormData({
-                              ...formData,
-                              alertPreferences: {
-                                ...formData.alertPreferences!,
-                                critical: checked,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="warning" className="text-sm font-normal">
-                          Warning Alerts
-                        </Label>
-                        <Switch
-                          id="warning"
-                          checked={formData.alertPreferences?.warning ?? true}
-                          onCheckedChange={(checked) =>
-                            setFormData({
-                              ...formData,
-                              alertPreferences: {
-                                ...formData.alertPreferences!,
-                                warning: checked,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="info" className="text-sm font-normal">
-                          Info Alerts
-                        </Label>
-                        <Switch
-                          id="info"
-                          checked={formData.alertPreferences?.info ?? false}
-                          onCheckedChange={(checked) =>
-                            setFormData({
-                              ...formData,
-                              alertPreferences: {
-                                ...formData.alertPreferences!,
-                                info: checked,
-                              },
-                            })
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 pt-2">
-                    <Button onClick={handleSaveCaregiver} className="flex-1">
-                      <Save className="w-4 h-4" />
-                      {editingId ? 'Update' : 'Add'} {formData.role === 'elder' ? 'Elder / Patient' : 'Caregiver'}
-                    </Button>
-                    <Button variant="outline" onClick={resetForm}>
-                      <X className="w-4 h-4" />
-                      Cancel
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* Add Button */}
-            {!isAdding && !editingId && (
-              <Button onClick={() => setIsAdding(true)} className="w-full">
-                <Plus className="w-4 h-4" />
-                Add {caregivers.length === 0 ? 'First' : ''} Caregiver
-              </Button>
+            <Button onClick={handleAddCaregiver} className="w-full">
+              <Plus className="w-4 h-4" />
+              Add {caregivers.length === 0 ? 'First' : ''} Caregiver
+            </Button>
+
+            {/* Elder (shown at top) */}
+            {elder && (
+              <Card className="p-4 bg-pink-50/50 border-pink-200">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-12 w-12 shrink-0">
+                    <AvatarImage src={getAvatarUrl(elder.name, elder.avatarUrl)} alt={elder.name} />
+                    <AvatarFallback className="bg-pink-200 text-pink-800 text-sm">
+                      {elder.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                    <span className="font-semibold truncate">{elder.name}</span>
+                    <Badge variant="outline" className="text-xs shrink-0">Elder</Badge>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => window.open(elder.email ? `/auth/login?email=${encodeURIComponent(elder.email)}` : '/auth/login', '_blank', 'noopener,noreferrer')}
+                      title="View as this user (opens login in new tab)"
+                    >
+                      <Eye className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={handleEditElder}
+                      title="Edit Elder Profile"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              </Card>
             )}
 
             {/* Caregivers List */}
             <div className="space-y-2">
-              {caregivers.length === 0 ? (
+              {caregivers.length === 0 && !elder ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <User className="w-10 h-10 mx-auto mb-2 opacity-50" />
                   <p>No persons configured</p>
@@ -422,15 +597,21 @@ const Settings = () => {
                       caregiver.isPrimary && 'ring-2 ring-primary/20'
                     )}
                   >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="font-semibold">{caregiver.name}</span>
-                          <Badge variant="outline" className="text-xs capitalize">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-12 w-12 shrink-0">
+                        <AvatarImage src={getAvatarUrl(caregiver.name, (caregiver as { avatarUrl?: string }).avatarUrl)} alt={caregiver.name} />
+                        <AvatarFallback className="bg-muted text-muted-foreground text-sm">
+                          {caregiver.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0 overflow-hidden">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-semibold truncate">{caregiver.name}</span>
+                          <Badge variant="outline" className="text-xs capitalize shrink-0">
                             {(caregiver as any).role || 'caregiver'}
                           </Badge>
                           {caregiver.isPrimary && (
-                            <Star className="w-4 h-4 text-warning fill-warning" />
+                            <Star className="w-4 h-4 text-warning fill-warning shrink-0" />
                           )}
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
@@ -452,11 +633,23 @@ const Settings = () => {
                           </span>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-1 shrink-0 ml-2">
+                        {caregiver.email && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9"
+                            onClick={() => window.open(`/auth/login?email=${encodeURIComponent(caregiver.email)}`, '_blank', 'noopener,noreferrer')}
+                            title="View as this user (opens login in new tab)"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        )}
                         {!caregiver.isPrimary && (
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="h-9 w-9"
                             onClick={() => handleSetPrimary(caregiver.id)}
                             title="Set as Primary"
                           >
@@ -466,14 +659,18 @@ const Settings = () => {
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-9 w-9"
                           onClick={() => handleEditCaregiver(caregiver)}
+                          title="Edit"
                         >
                           <Edit2 className="w-4 h-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
+                          className="h-9 w-9"
                           onClick={() => handleDeleteCaregiver(caregiver.id)}
+                          title="Remove"
                         >
                           <Trash2 className="w-4 h-4 text-destructive" />
                         </Button>
@@ -599,7 +796,339 @@ const Settings = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Data Stream Config */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="flex items-center gap-2">
+                <Wifi className="w-5 h-5" />
+                Data Stream Config
+              </CardTitle>
+              {getStreamStatusBadge()}
+            </div>
+            <CardDescription>
+              Configure WebSocket URL for real-time EEG data streaming.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/30">
+              <div className="flex-1 min-w-0">
+                <Label className="text-sm font-semibold">Connection Mode</Label>
+                <p className="text-xs text-muted-foreground mt-0.5 truncate">
+                  {connectionMode === 'streaming' ? 'WebSocket streaming' : 'localStorage / simulator'}
+                </p>
+              </div>
+              <Switch
+                checked={connectionMode === 'streaming'}
+                onCheckedChange={handleConnectionModeChange}
+              />
+            </div>
+
+            {connectionMode === 'streaming' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="websocket-url" className="text-sm">WebSocket URL</Label>
+                  <Input
+                    id="websocket-url"
+                    type="text"
+                    placeholder="ws://localhost:8080/stream"
+                    value={websocketUrl}
+                    onChange={(e) => {
+                      setWebsocketUrl(e.target.value);
+                      setConnectionStatus('disconnected');
+                      setTestResult('idle');
+                      setTestMessage('');
+                    }}
+                    className="font-mono text-sm"
+                  />
+                </div>
+
+                {websocketUrl && (
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 text-sm">
+                    {getStreamStatusIcon()}
+                    <span className="text-muted-foreground truncate">
+                      {connectionStatus === 'disconnected' && 'Not connected'}
+                      {connectionStatus === 'connecting' && 'Connecting...'}
+                      {connectionStatus === 'connected' && 'Connected'}
+                      {connectionStatus === 'error' && 'Error'}
+                    </span>
+                  </div>
+                )}
+
+                {testResult !== 'idle' && (
+                  <div className={cn(
+                    "p-2 rounded-lg border text-sm",
+                    testResult === 'success' && "bg-success/10 border-success/20",
+                    testResult === 'failed' && "bg-alert/10 border-alert/20",
+                    testResult === 'testing' && "bg-warning/10 border-warning/20"
+                  )}>
+                    {testResult === 'success' && <CheckCircle2 className="w-4 h-4 text-success inline mr-2" />}
+                    {testResult === 'failed' && <XCircle className="w-4 h-4 text-alert inline mr-2" />}
+                    {testResult === 'testing' && <RefreshCw className="w-4 h-4 text-warning inline mr-2 animate-spin" />}
+                    {testMessage}
+                  </div>
+                )}
+              </>
+            )}
+
+            {connectionMode === 'localStorage' && (
+              <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800">
+                <p className="text-xs text-blue-900 dark:text-blue-100">
+                  Data from stress simulator via localStorage. Use simulator page to trigger events.
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-2 pt-2 border-t">
+              <div className="flex items-center justify-between p-2 rounded-lg border bg-secondary/30">
+                <div>
+                  <Label className="text-sm font-semibold">Demo Mode</Label>
+                  <p className="text-xs text-muted-foreground">High-stress simulation for demos</p>
+                </div>
+                <Switch
+                  checked={demoMode}
+                  onCheckedChange={async (checked) => {
+                    setDemoMode(checked);
+                    storageService.saveDemoMode(checked);
+                    try {
+                      await fetch('/api/demo-mode', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ enabled: checked }),
+                      });
+                    } catch { /* ignore */ }
+                    toast({
+                      title: checked ? 'Demo Mode Enabled' : 'Demo Mode Disabled',
+                      description: checked ? 'High-stress simulation enabled.' : 'Normal mode restored.',
+                    });
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 pt-2">
+              <Button onClick={handleSaveStreamConfig} className="w-full" size="sm">
+                <Save className="w-4 h-4 mr-2" />
+                Save Config
+              </Button>
+              {connectionMode === 'streaming' && (
+                <>
+                  <Button variant="outline" size="sm" className="w-full" onClick={handleTestConnection} disabled={!websocketUrl.trim() || testResult === 'testing'}>
+                    <TestTube className="w-4 h-4 mr-2" />
+                    Test Connection
+                  </Button>
+                  {websocketUrl && (
+                    <Button variant="ghost" size="sm" className="w-full text-destructive" onClick={handleClearStreamUrl}>
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Clear URL
+                    </Button>
+                  )}
+                </>
+              )}
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* Add/Edit Caregiver Dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(open) => !open && resetForm()}>
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-6">
+          <DialogHeader>
+            <DialogTitle>
+              {isEditingElder ? 'Edit Elder Profile' : editingId ? 'Edit Care Team Member' : 'Add Care Team Member'}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditingElder 
+                ? 'Update the elder profile details below.'
+                : editingId ? 'Update the details below.' : 'Add a new caregiver or family member.'}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Profile Image Upload */}
+            <div className="flex flex-col items-center gap-3">
+              <Avatar className="h-20 w-20">
+                <AvatarImage 
+                  src={previewImage || (formData.avatarUrl ? formData.avatarUrl : formData.name ? getAvatarUrl(formData.name) : undefined)} 
+                  alt={formData.name || 'Avatar'} 
+                />
+                <AvatarFallback className="bg-muted text-muted-foreground text-lg">
+                  {formData.name ? formData.name.split(' ').map(n => n[0]).join('').slice(0, 2) : <User className="w-8 h-8" />}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex gap-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Camera className="w-4 h-4 mr-2" />
+                  Upload Photo
+                </Button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dialog-name">Name *</Label>
+              <Input
+                id="dialog-name"
+                value={formData.name || ''}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="John Doe"
+              />
+            </div>
+
+            {!isEditingElder && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dialog-role">Role</Label>
+                    <Select
+                      value={formData.role}
+                      onValueChange={(value: 'caregiver' | 'elder') => setFormData({ ...formData, role: value })}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="caregiver">Caregiver / Family</SelectItem>
+                        <SelectItem value="elder">Elder / Patient</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="dialog-relationship">Relationship</Label>
+                    <Input
+                      id="dialog-relationship"
+                      value={formData.relationship || ''}
+                      onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
+                      placeholder="Family, Doctor, etc."
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dialog-email">Email *</Label>
+                  <Input
+                    id="dialog-email"
+                    type="email"
+                    value={formData.email || ''}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="email@example.com"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dialog-phone">Phone *</Label>
+                  <Input
+                    id="dialog-phone"
+                    type="tel"
+                    value={formData.phone || ''}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="+1 (555) 123-4567"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Switch
+                    id="dialog-primary"
+                    checked={formData.isPrimary || false}
+                    onCheckedChange={(checked) => setFormData({ ...formData, isPrimary: checked })}
+                  />
+                  <Label htmlFor="dialog-primary">Set as Primary Caregiver</Label>
+                </div>
+
+                <div className="space-y-3 pt-2 border-t">
+                  <Label>Alert Preferences</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="dialog-critical" className="text-sm font-normal">
+                        Critical Alerts
+                      </Label>
+                      <Switch
+                        id="dialog-critical"
+                        checked={formData.alertPreferences?.critical ?? true}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            alertPreferences: {
+                              ...formData.alertPreferences!,
+                              critical: checked,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="dialog-warning" className="text-sm font-normal">
+                        Warning Alerts
+                      </Label>
+                      <Switch
+                        id="dialog-warning"
+                        checked={formData.alertPreferences?.warning ?? true}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            alertPreferences: {
+                              ...formData.alertPreferences!,
+                              warning: checked,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="dialog-info" className="text-sm font-normal">
+                        Info Alerts
+                      </Label>
+                      <Switch
+                        id="dialog-info"
+                        checked={formData.alertPreferences?.info ?? false}
+                        onCheckedChange={(checked) =>
+                          setFormData({
+                            ...formData,
+                            alertPreferences: {
+                              ...formData.alertPreferences!,
+                              info: checked,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {isEditingElder && (
+              <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+                <p className="text-xs text-muted-foreground">
+                  Elder profile information. Email and contact details are managed through the account settings.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={resetForm}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveCaregiver}>
+              <Save className="w-4 h-4 mr-2" />
+              {editingId ? 'Update' : 'Add'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

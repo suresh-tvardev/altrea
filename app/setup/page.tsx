@@ -266,7 +266,7 @@ export default function SetupPage() {
                                 <Label htmlFor="accountName">Family / Account Name</Label>
                                 <Input
                                     id="accountName"
-                                    placeholder="e.g. Smith Family Care"
+                                    placeholder="e.g. Garcia Care Team"
                                     value={accountName}
                                     onChange={(e) => setAccountName(e.target.value)}
                                     className="h-12"

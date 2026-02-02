@@ -28,6 +28,7 @@ import { login } from '@/app/actions/auth';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 const USE_CASES = [
     {
@@ -76,32 +77,25 @@ const USE_CASES = [
 
 const DEMO_ACCOUNTS = [
     {
-        name: 'Smith Family Care',
+        name: 'Garcia Care Team',
         elder: {
-            email: 'margaret.smith@altrea.com',
+            email: 'mariagarcia@gmail.com',
             password: 'Demo123!',
-            name: 'Margaret Smith',
+            name: 'Maria Garcia',
+            avatarUrl: 'https://ui-avatars.com/api/?name=Maria+Garcia&size=128&background=ec4899&color=fff',
         },
         caregiver: {
-            email: 'john.smith@altrea.com',
+            email: 'saraz@mit.edu',
             password: 'Demo123!',
-            name: 'John Smith',
+            name: 'Sara Zhou',
+            avatarUrl: 'https://ui-avatars.com/api/?name=Sara+Zhou&size=128&background=3b82f6&color=fff',
         },
-        description: 'Complete demo account with elder, caregiver, and care team members',
-    },
-    {
-        name: 'Johnson Wellness Circle',
-        elder: {
-            email: 'robert.johnson@altrea.com',
-            password: 'Demo123!',
-            name: 'Robert Johnson',
+        physician: {
+            email: 'meredith@gmail.com',
+            name: 'Dr. Meredith Grey',
+            avatarUrl: 'https://ui-avatars.com/api/?name=Meredith+Grey&size=128&background=10b981&color=fff',
         },
-        caregiver: {
-            email: 'lisa.johnson@altrea.com',
-            password: 'Demo123!',
-            name: 'Lisa Johnson',
-        },
-        description: 'Secondary demo account for testing multiple scenarios',
+        description: 'Elder & Care Team: Maria Garcia, Primary Caregiver Sara Zhou, Primary Physician Dr. Meredith Grey',
     },
 ];
 
@@ -204,7 +198,7 @@ export default function DemoPage() {
         setIsLoggingIn(page);
         try {
             // Use caregiver demo account
-            const caregiverAccount = DEMO_ACCOUNTS.find(acc => acc.name === 'Smith Family Care');
+            const caregiverAccount = DEMO_ACCOUNTS.find(acc => acc.name === 'Garcia Care Team');
             if (!caregiverAccount) {
                 toast.error('Demo account not found');
                 setIsLoggingIn(null);
@@ -392,7 +386,7 @@ export default function DemoPage() {
                     <div>
                         <h2 className="text-3xl font-bold mb-6 text-center">Demo Accounts</h2>
                         <div className="grid grid-cols-1 gap-6">
-                            {DEMO_ACCOUNTS.filter(account => account.name === 'Smith Family Care').map((account, idx) => (
+                            {DEMO_ACCOUNTS.filter(account => account.name === 'Garcia Care Team').map((account, idx) => (
                                 <Card key={idx} className="border-2">
                                     <CardHeader>
                                         <div className="flex items-center justify-between">
@@ -404,15 +398,23 @@ export default function DemoPage() {
                                     <CardContent className="space-y-4">
                                         {/* Elder Login */}
                                         <div className="p-4 bg-pink-50 rounded-lg border border-pink-200">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <UserRound className="w-5 h-5 text-pink-600" />
-                                                <span className="font-semibold">Elder User</span>
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <Avatar className="h-12 w-12">
+                                                    <AvatarImage src={(account.elder as any).avatarUrl} alt={account.elder.name} />
+                                                    <AvatarFallback className="bg-pink-200 text-pink-800">{account.elder.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <UserRound className="w-4 h-4 text-pink-600" />
+                                                        <span className="font-semibold">Elder</span>
+                                                    </div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        <div><strong>{account.elder.name}</strong></div>
+                                                        <div>{account.elder.email}</div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="text-sm text-muted-foreground mb-3">
-                                                <div><strong>Name:</strong> {account.elder.name}</div>
-                                                <div><strong>Email:</strong> {account.elder.email}</div>
-                                                <div><strong>Password:</strong> {account.elder.password}</div>
-                                            </div>
+                                            <div className="text-xs text-muted-foreground mb-3">Password: {account.elder.password}</div>
                                             <Button
                                                 onClick={() => handleQuickLogin(account.elder.email, account.elder.password, 'elder')}
                                                 variant="outline"
@@ -424,17 +426,25 @@ export default function DemoPage() {
                                             </Button>
                                         </div>
 
-                                        {/* Caregiver Login */}
+                                        {/* Primary Caregiver Login */}
                                         <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                                            <div className="flex items-center gap-2 mb-2">
-                                                <HeartHandshake className="w-5 h-5 text-blue-600" />
-                                                <span className="font-semibold">Caregiver User</span>
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <Avatar className="h-12 w-12">
+                                                    <AvatarImage src={(account.caregiver as any).avatarUrl} alt={account.caregiver.name} />
+                                                    <AvatarFallback className="bg-blue-200 text-blue-800">{account.caregiver.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
+                                                </Avatar>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <HeartHandshake className="w-4 h-4 text-blue-600" />
+                                                        <span className="font-semibold">Primary Caregiver</span>
+                                                    </div>
+                                                    <div className="text-sm text-muted-foreground">
+                                                        <div><strong>{account.caregiver.name}</strong></div>
+                                                        <div>{account.caregiver.email}</div>
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div className="text-sm text-muted-foreground mb-3">
-                                                <div><strong>Name:</strong> {account.caregiver.name}</div>
-                                                <div><strong>Email:</strong> {account.caregiver.email}</div>
-                                                <div><strong>Password:</strong> {account.caregiver.password}</div>
-                                            </div>
+                                            <div className="text-xs text-muted-foreground mb-3">Password: {account.caregiver.password}</div>
                                             <Button
                                                 onClick={() => handleQuickLogin(account.caregiver.email, account.caregiver.password, 'caregiver')}
                                                 variant="outline"
@@ -445,6 +455,29 @@ export default function DemoPage() {
                                                 Login as Caregiver
                                             </Button>
                                         </div>
+
+                                        {/* Primary Physician (Care Team - no login) */}
+                                        {(account as any).physician && (
+                                            <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-12 w-12">
+                                                        <AvatarImage src={(account as any).physician.avatarUrl} alt={(account as any).physician.name} />
+                                                        <AvatarFallback className="bg-emerald-200 text-emerald-800">{(account as any).physician.name.split(' ').map((n: string) => n[0]).join('')}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <UserRound className="w-4 h-4 text-emerald-600" />
+                                                            <span className="font-semibold">Primary Physician</span>
+                                                        </div>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            <div><strong>{(account as any).physician.name}</strong></div>
+                                                            <div>{(account as any).physician.email}</div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <p className="text-xs text-muted-foreground mt-2">Care team member (receives alerts)</p>
+                                            </div>
+                                        )}
                                     </CardContent>
                                 </Card>
                             ))}
@@ -490,7 +523,7 @@ export default function DemoPage() {
                                         <div>
                                             <p className="font-medium">Verify Account Creation</p>
                                             <p className="text-sm text-muted-foreground">
-                                                Check the setup results below the button. You should see "✓ Created successfully" for both demo accounts.
+                                                Check the setup results below the button. You should see "✓ Created successfully" for the demo account.
                                             </p>
                                         </div>
                                     </div>
@@ -511,8 +544,8 @@ export default function DemoPage() {
                                         <div>
                                             <p className="font-medium">Login as Elder</p>
                                             <p className="text-sm text-muted-foreground">
-                                                Click <strong>"Login as Elder"</strong> for "Smith Family Care" account. 
-                                                You should be redirected to the Elder Dashboard.
+                                                Click <strong>"Login as Elder"</strong> for "Garcia Care Team" account. 
+                                                You should be redirected to the Elder Dashboard (Maria Garcia).
                                             </p>
                                         </div>
                                     </div>
@@ -537,9 +570,8 @@ export default function DemoPage() {
                                             <div className="text-sm text-muted-foreground">
                                                 <p>Scroll down to see the <strong>"Circle of Care"</strong> panel. Verify you can see:</p>
                                                 <ul className="list-disc list-inside mt-1 ml-2">
-                                                    <li>Primary Caregiver (John Smith)</li>
-                                                    <li>Family members (Sarah Smith - Daughter)</li>
-                                                    <li>Doctors (Dr. Emily Johnson)</li>
+                                                    <li>Primary Caregiver (Sara Zhou)</li>
+                                                    <li>Primary Physician (Dr. Meredith Grey)</li>
                                                 </ul>
                                             </div>
                                         </div>
@@ -650,7 +682,7 @@ export default function DemoPage() {
                                             <p className="text-sm text-muted-foreground">
                                                 Open a <strong>new browser tab/window</strong> (or use incognito mode). 
                                                 Navigate back to this demo page and click <strong>"Login as Caregiver"</strong> 
-                                                for "Smith Family Care". You should see the Caregiver Dashboard.
+                                                for "Garcia Care Team". You should see the Caregiver Dashboard (Sara Zhou).
                                             </p>
                                         </div>
                                     </div>

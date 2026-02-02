@@ -1,3 +1,12 @@
 "use client";
 
-export { default } from '@/views/Configuration';
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+
+export default function ConfigurationPage() {
+  const router = useRouter();
+  useEffect(() => {
+    router.replace('/settings');
+  }, [router]);
+  return null;
+}

@@ -3,6 +3,60 @@
 import { createClient } from '@/lib/supabase/server';
 import { Caregiver } from '@/types/eeg';
 
+export async function getElderForAccount(): Promise<{ id: string; name: string; email?: string; phone?: string; avatarUrl?: string | null } | null> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('account_id')
+        .eq('id', user.id)
+        .single();
+
+    if (!profile?.account_id) return null;
+
+    const { data: elderProfile } = await supabase
+        .from('profiles')
+        .select('id, full_name, avatar_url')
+        .eq('account_id', profile.account_id)
+        .eq('role', 'elder')
+        .single();
+
+    if (!elderProfile?.full_name) return null;
+
+    // Get elder's auth user info for email
+    const { data: elderAuthUser } = await supabase.auth.admin.getUserById(elderProfile.id);
+
+    return {
+        id: elderProfile.id,
+        name: elderProfile.full_name,
+        email: elderAuthUser?.user?.email || undefined,
+        avatarUrl: elderProfile.avatar_url || null,
+    };
+}
+
+export async function updateElderProfile(id: string, updates: { name?: string; avatarUrl?: string | null }) {
+    const supabase = await createClient();
+
+    // Update profiles table
+    const updateData: any = {};
+    if (updates.name !== undefined) {
+        updateData.full_name = updates.name;
+    }
+    if (updates.avatarUrl !== undefined) {
+        updateData.avatar_url = updates.avatarUrl;
+    }
+
+    const { error } = await supabase
+        .from('profiles')
+        .update(updateData)
+        .eq('id', id);
+
+    if (error) return { error: error.message };
+    return { success: true };
+}
+
 export async function getCareTeamMembers() {
     const supabase = await createClient();
 
@@ -19,7 +73,21 @@ export async function getCareTeamMembers() {
     if (!profile?.account_id) return [];
 
     const currentUserRole = profile.role;
-    const contacts: Caregiver[] = [];
+    const contacts: (Caregiver & { avatarUrl?: string | null })[] = [];
+
+    // Get caregiver profiles (with avatar_url) for this account to match by email
+    const { data: caregiverProfiles } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('account_id', profile.account_id)
+        .eq('role', 'caregiver');
+
+    const getAvatarForCaregiver = (name: string) => {
+        const match = caregiverProfiles?.find(p =>
+            p.full_name && name && p.full_name === name
+        );
+        return match?.avatar_url || null;
+    };
 
     // Get care team members from care_team_members table
     // Filter based on role:
@@ -50,6 +118,8 @@ export async function getCareTeamMembers() {
                 warning: true,
                 info: false,
             },
+            // Use avatar_url from DB if available, otherwise try to match from profiles
+            avatarUrl: member.avatar_url || getAvatarForCaregiver(member.name),
         }));
         contacts.push(...convertedMembers);
     }
@@ -59,7 +129,7 @@ export async function getCareTeamMembers() {
     if (currentUserRole === 'elder') {
         const { data: partnerProfiles } = await supabase
             .from('profiles')
-            .select('id, full_name')
+            .select('id, full_name, avatar_url')
             .eq('account_id', profile.account_id)
             .eq('role', 'caregiver')
             .neq('id', user.id);
@@ -94,6 +164,7 @@ export async function getCareTeamMembers() {
                             warning: true,
                             info: false,
                         },
+                        avatarUrl: (partner as { avatar_url?: string })?.avatar_url || null,
                     });
                 }
             }
@@ -103,7 +174,7 @@ export async function getCareTeamMembers() {
     return contacts;
 }
 
-export async function addCareTeamMember(member: Omit<Caregiver, 'id'>) {
+export async function addCareTeamMember(member: Omit<Caregiver, 'id'> & { avatarUrl?: string | null }) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { error: 'Not authenticated' };
@@ -121,10 +192,16 @@ export async function addCareTeamMember(member: Omit<Caregiver, 'id'>) {
         return { error: 'No account linked to user' };
     }
 
+    // Convert camelCase to snake_case for DB
+    const { avatarUrl, alertPreferences, isPrimary, ...restMember } = member as any;
+
     const { data, error } = await supabase
         .from('care_team_members')
         .insert({
-            ...member,
+            ...restMember,
+            avatar_url: avatarUrl || null,
+            alert_preferences: alertPreferences || { critical: true, warning: true, info: false },
+            is_primary: isPrimary || false,
             account_id: profile.account_id
         })
         .select()
@@ -134,12 +211,26 @@ export async function addCareTeamMember(member: Omit<Caregiver, 'id'>) {
     return { data };
 }
 
-export async function updateCareTeamMember(id: string, member: Partial<Caregiver>) {
+export async function updateCareTeamMember(id: string, member: Partial<Caregiver> & { avatarUrl?: string | null }) {
     const supabase = await createClient();
+
+    // Convert camelCase to snake_case for DB
+    const { avatarUrl, alertPreferences, isPrimary, ...restMember } = member as any;
+    const updateData: any = { ...restMember };
+    
+    if (avatarUrl !== undefined) {
+        updateData.avatar_url = avatarUrl;
+    }
+    if (alertPreferences !== undefined) {
+        updateData.alert_preferences = alertPreferences;
+    }
+    if (isPrimary !== undefined) {
+        updateData.is_primary = isPrimary;
+    }
 
     const { error } = await supabase
         .from('care_team_members')
-        .update(member)
+        .update(updateData)
         .eq('id', id);
 
     if (error) return { error: error.message };

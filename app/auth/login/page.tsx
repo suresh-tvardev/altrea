@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { AuthForm } from "@/components/auth/AuthForm";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
@@ -12,7 +13,9 @@ export default function LoginPage() {
                 <ChevronLeft className="mr-1 w-4 h-4" />
                 Back to Home
             </Link>
-            <AuthForm type="login" />
+            <Suspense fallback={<div className="w-full max-w-md h-96 animate-pulse rounded-lg bg-muted" />}>
+                <AuthForm type="login" />
+            </Suspense>
         </div>
     );
 }

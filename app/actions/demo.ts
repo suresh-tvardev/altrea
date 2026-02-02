@@ -11,12 +11,14 @@ export interface DemoAccount {
         password: string;
         name: string;
         phone?: string;
+        avatarUrl?: string;
     };
     caregiver: {
         email: string;
         password: string;
         name: string;
         phone?: string;
+        avatarUrl?: string;
     };
     careTeamMembers?: Array<{
         name: string;
@@ -55,7 +57,8 @@ export async function createDemoAccount(demoAccount: DemoAccount) {
             email_confirm: true,
             user_metadata: {
                 full_name: demoAccount.elder.name,
-                role: 'elder'
+                role: 'elder',
+                avatar_url: demoAccount.elder.avatarUrl || null
             }
         });
 
@@ -75,6 +78,7 @@ export async function createDemoAccount(demoAccount: DemoAccount) {
                 role: 'elder',
                 full_name: demoAccount.elder.name,
                 account_id: accountId,
+                avatar_url: demoAccount.elder.avatarUrl || null,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
 
@@ -85,7 +89,8 @@ export async function createDemoAccount(demoAccount: DemoAccount) {
             email_confirm: true,
             user_metadata: {
                 full_name: demoAccount.caregiver.name,
-                role: 'caregiver'
+                role: 'caregiver',
+                avatar_url: demoAccount.caregiver.avatarUrl || null
             }
         });
 
@@ -106,6 +111,7 @@ export async function createDemoAccount(demoAccount: DemoAccount) {
                 role: 'caregiver',
                 full_name: demoAccount.caregiver.name,
                 account_id: accountId,
+                avatar_url: demoAccount.caregiver.avatarUrl || null,
                 updated_at: new Date().toISOString()
             }, { onConflict: 'id' });
 
@@ -164,60 +170,28 @@ export async function createDemoAccount(demoAccount: DemoAccount) {
 export async function setupDemoEnvironment() {
     const demoAccounts: DemoAccount[] = [
         {
-            accountName: 'Smith Family Care',
+            accountName: 'Garcia Care Team',
             deviceId: 'SN-DEMO-001',
             elder: {
-                email: 'margaret.smith@altrea.com',
+                email: 'mariagarcia@gmail.com',
                 password: 'Demo123!',
-                name: 'Margaret Smith',
-                phone: '+1-555-0101'
+                name: 'Maria Garcia',
+                phone: '+1-555-0101',
+                avatarUrl: 'https://ui-avatars.com/api/?name=Maria+Garcia&size=128&background=ec4899&color=fff'
             },
             caregiver: {
-                email: 'john.smith@altrea.com',
+                email: 'saraz@mit.edu',
                 password: 'Demo123!',
-                name: 'John Smith',
-                phone: '+1-555-0102'
+                name: 'Sara Zhou',
+                phone: '+1-555-0102',
+                avatarUrl: 'https://ui-avatars.com/api/?name=Sara+Zhou&size=128&background=3b82f6&color=fff'
             },
             careTeamMembers: [
                 {
-                    name: 'Sarah Smith',
-                    email: 'sarah.smith@example.com',
-                    phone: '+1-555-0103',
-                    relationship: 'Daughter',
-                    role: 'caregiver',
-                    isPrimary: false
-                },
-                {
-                    name: 'Dr. Emily Johnson',
-                    email: 'dr.johnson@example.com',
+                    name: 'Dr. Meredith Grey',
+                    email: 'meredith@gmail.com',
                     phone: '+1-555-0104',
                     relationship: 'Primary Physician',
-                    role: 'caregiver',
-                    isPrimary: false
-                }
-            ]
-        },
-        {
-            accountName: 'Johnson Wellness Circle',
-            deviceId: 'SN-DEMO-002',
-            elder: {
-                email: 'robert.johnson@altrea.com',
-                password: 'Demo123!',
-                name: 'Robert Johnson',
-                phone: '+1-555-0201'
-            },
-            caregiver: {
-                email: 'lisa.johnson@altrea.com',
-                password: 'Demo123!',
-                name: 'Lisa Johnson',
-                phone: '+1-555-0202'
-            },
-            careTeamMembers: [
-                {
-                    name: 'Michael Johnson',
-                    email: 'michael.j@example.com',
-                    phone: '+1-555-0203',
-                    relationship: 'Son',
                     role: 'caregiver',
                     isPrimary: false
                 }
@@ -245,20 +219,16 @@ export async function clearDemoEnvironment() {
 
     try {
         const demoEmails = [
-            'margaret.smith@altrea.com',
-            'john.smith@altrea.com',
-            'robert.johnson@altrea.com',
-            'lisa.johnson@altrea.com'
+            'mariagarcia@gmail.com',
+            'saraz@mit.edu'
         ];
 
         const demoAccountNames = [
-            'Smith Family Care',
-            'Johnson Wellness Circle'
+            'Garcia Care Team'
         ];
 
         const demoDeviceIds = [
-            'SN-DEMO-001',
-            'SN-DEMO-002'
+            'SN-DEMO-001'
         ];
 
         // Step 1: Find demo accounts by name
@@ -345,10 +315,8 @@ export async function checkDemoUsersExist() {
 
     try {
         const demoEmails = [
-            'margaret.smith@altrea.com',
-            'john.smith@altrea.com',
-            'robert.johnson@altrea.com',
-            'lisa.johnson@altrea.com'
+            'mariagarcia@gmail.com',
+            'saraz@mit.edu'
         ];
 
         // Check if any demo users exist by email

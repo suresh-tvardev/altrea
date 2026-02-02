@@ -18,14 +18,14 @@ import { login } from '@/app/actions/auth';
 import { toast } from 'sonner';
 import type { MoodSelection } from '@/types/eeg';
 
-// Demo account credentials
+// Demo account credentials (Garcia Care Team)
 const DEMO_ACCOUNT = {
     elder: {
-        email: 'margaret.smith@altrea.com',
+        email: 'mariagarcia@gmail.com',
         password: 'Demo123!',
     },
     caregiver: {
-        email: 'john.smith@altrea.com',
+        email: 'saraz@mit.edu',
         password: 'Demo123!',
     },
 };
@@ -167,7 +167,12 @@ export default function ComparisonPage() {
                     </div>
                     <div className="p-4">
                         <main className="max-w-7xl mx-auto">
-                            {/* Quick Stats */}
+                            {/* Weekly Overview & Personalized Insights - Top */}
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+                                <HistoricalChart data={historicalData} />
+                                <InsightsPanel insights={insights} />
+                            </div>
+
                             <section className="mb-6">
                                 <QuickStats data={historicalData} />
                             </section>
@@ -178,14 +183,12 @@ export default function ComparisonPage() {
                                 <div className="lg:col-span-2 space-y-6">
                                     <EmotionalStateIndicator analysis={analysis} />
                                     <EEGWaveform readings={readings} isConnected={isConnected} />
-                                    <HistoricalChart data={historicalData} />
                                 </div>
 
-                                {/* Right Column - Alerts, Caregivers, Insights */}
+                                {/* Right Column - Alerts, Caregivers */}
                                 <div className="space-y-6">
                                     <AlertsPanel alerts={alerts} onAcknowledge={acknowledgeAlert} />
                                     <CaregiversPanel />
-                                    <InsightsPanel insights={insights} />
                                 </div>
                             </div>
                         </main>
