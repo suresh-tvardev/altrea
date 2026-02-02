@@ -46,7 +46,7 @@ export const ElderPersonalStats = ({ historicalData, selectedMood }: ElderPerson
   }, [historicalData, selectedMood]);
 
   return (
-    <Card className="border-2 border-pink-200 bg-white/90 shadow-lg">
+    <Card className="border border-sky-200/60 bg-white/95 shadow-sm">
       <CardContent className="p-6">
         <div className="space-y-6">
           {/* Today's Mood */}
@@ -60,36 +60,36 @@ export const ElderPersonalStats = ({ historicalData, selectedMood }: ElderPerson
           </div>
 
           {/* Weekly Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-pink-100">
-            <div className="text-center p-4 bg-green-50 rounded-xl">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-sky-200/60">
+            <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200/60">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <Smile className="w-6 h-6 text-green-600" />
-                <span className="text-lg font-semibold text-green-900">Calm Days</span>
+                <Smile className="w-6 h-6 text-emerald-600" />
+                <span className="text-lg font-semibold text-emerald-800">Calm Days</span>
               </div>
-              <div className="text-4xl font-bold text-green-700">
+              <div className="text-4xl font-bold text-emerald-700">
                 {stats.calmDaysThisWeek}
               </div>
-              <div className="text-sm text-green-600 mt-1">
+              <div className="text-sm text-emerald-600 mt-1">
                 out of {stats.totalDays} days this week
               </div>
             </div>
 
-            <div className="text-center p-4 bg-blue-50 rounded-xl">
+            <div className="text-center p-4 bg-sky-50 rounded-xl border border-sky-200/60">
               <div className="flex items-center justify-center gap-2 mb-2">
-                <TrendingUp className="w-6 h-6 text-blue-600" />
-                <span className="text-lg font-semibold text-blue-900">This Week</span>
+                <TrendingUp className="w-6 h-6 text-sky-600" />
+                <span className="text-lg font-semibold text-sky-800">This Week</span>
               </div>
-              <div className="text-4xl font-bold text-blue-700">
+              <div className="text-4xl font-bold text-sky-700">
                 {stats.calmDaysThisWeek > 3 ? 'Great!' : stats.calmDaysThisWeek > 1 ? 'Good!' : 'Keep going!'}
               </div>
-              <div className="text-sm text-blue-600 mt-1">
+              <div className="text-sm text-sky-600 mt-1">
                 You're doing well!
               </div>
             </div>
           </div>
 
           {/* Encouraging Message */}
-          <div className="text-center pt-4 border-t border-pink-100">
+          <div className="text-center pt-4 border-t border-sky-200/60">
             <p className="text-lg text-muted-foreground">
               {stats.calmDaysThisWeek >= 5 
                 ? "🌟 You've had a wonderful week! Keep up the great work!"

@@ -13,6 +13,26 @@ let globalReconnectTimeoutRef: NodeJS.Timeout | null = null;
 let globalReconnectAttemptsRef = 0;
 let globalIsUsingWebSocket = false;
 
+// Calm: high alpha, moderate theta, lower beta -> relaxed state
+const generateCalmEEGReading = (): EEGReading => ({
+  timestamp: new Date(),
+  alpha: 10 + Math.random() * 3,
+  beta: 15 + Math.random() * 8,
+  theta: 5 + Math.random() * 2,
+  delta: 1 + Math.random() * 2,
+  gamma: 40 + Math.random() * 30,
+});
+
+// Stress: high beta, lower alpha -> elevated stress
+const generateStressEEGReading = (): EEGReading => ({
+  timestamp: new Date(),
+  alpha: 6 + Math.random() * 3,
+  beta: 28 + Math.random() * 15,
+  theta: 4 + Math.random() * 3,
+  delta: 0.5 + Math.random() * 2,
+  gamma: 70 + Math.random() * 30,
+});
+
 const generateEEGReading = (): EEGReading => ({
   timestamp: new Date(),
   alpha: 8 + Math.random() * 5,
@@ -164,6 +184,7 @@ export function EEGProvider({ children }: { children: ReactNode }) {
   const isInitializedRef = useRef(false);
   const isInitialLoadRef = useRef(true); // Track if this is initial load
   const mockDataIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const simulationStartTimeRef = useRef<number>(Date.now());
 
   const parseWebSocketMessage = useCallback((data: string): EEGReading | null => {
     try {
@@ -272,6 +293,18 @@ export function EEGProvider({ children }: { children: ReactNode }) {
               console.log('Alert created:', alert);
               addAlert(alert);
               lastAlertTimes.current[alertCheck.alertType] = new Date();
+
+              // When critical alert fires, update emotional state to stressed for caregiver view
+              if (alertCheck.alertType === 'critical') {
+                setAnalysis(prev => ({
+                  ...prev,
+                  state: 'stressed',
+                  stressLevel: Math.max(prev.stressLevel, 80),
+                  calmLevel: Math.min(prev.calmLevel, 25),
+                  confidence: 0.85,
+                }));
+                previousState.current = 'stressed';
+              }
             }
           }
         }, 0);
@@ -667,8 +700,14 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       }
     }, 500); // Poll every 500ms to catch simulator data quickly
 
-    // Mock data generation is disabled - only use data from simulator
-    // No mock data will be generated
+    // Default simulation: calm for 40s, then stress (1 Hz)
+    simulationStartTimeRef.current = Date.now();
+    mockDataIntervalRef.current = setInterval(() => {
+      const elapsedMs = Date.now() - simulationStartTimeRef.current;
+      const phase = elapsedMs < 40000 ? 'calm' : 'stress';
+      const reading = phase === 'calm' ? generateCalmEEGReading() : generateStressEEGReading();
+      processReading(reading, false);
+    }, 1000);
 
     return () => {
       clearTimeout(initialLoadTimeout);

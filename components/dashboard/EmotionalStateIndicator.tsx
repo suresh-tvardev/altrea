@@ -91,48 +91,12 @@ export const EmotionalStateIndicator = ({ analysis }: EmotionalStateIndicatorPro
         </div>
 
         <div className="flex-1">
-          <div className="flex flex-col sm:flex-row items-center gap-2">
-            <span className={cn("text-2xl font-bold", config.color)}>
-              {config.label}
-            </span>
-            <span className="text-sm text-muted-foreground">
-              ({Math.round(analysis.confidence * 100)}% confidence)
-            </span>
-          </div>
+          <span className={cn("text-2xl font-bold", config.color)}>
+            {config.label}
+          </span>
           <p className="text-muted-foreground mt-1">{config.description}</p>
         </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-4 mt-6">
-        <MetricBar
-          label="Calm"
-          value={analysis.calmLevel}
-          color="bg-success"
-        />
-        <MetricBar
-          label="Stress"
-          value={analysis.stressLevel}
-          color="bg-warning"
-        />
-        <MetricBar
-          label="Anxiety"
-          value={analysis.anxietyLevel}
-          color="bg-alert"
-        />
       </div>
     </div>
   );
 };
-
-const MetricBar = ({ label, value, color }: { label: string; value: number; color: string }) => (
-  <div className="text-center">
-    <div className="text-sm font-medium text-muted-foreground mb-2">{label}</div>
-    <div className="h-2 bg-muted rounded-full overflow-hidden">
-      <div
-        className={cn("h-full rounded-full transition-all duration-700", color)}
-        style={{ width: `${value}%` }}
-      />
-    </div>
-    <div className="text-lg font-semibold text-foreground mt-1">{Math.round(value)}%</div>
-  </div>
-);

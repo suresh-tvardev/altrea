@@ -62,7 +62,7 @@ export const ElderCircleOfCare = () => {
   );
 
   return (
-    <Card className="border-2 border-pink-200 bg-white/90 shadow-lg">
+    <Card className="border border-sky-200/60 bg-white/95 shadow-sm">
       <CardContent className="p-6">
         <div className="space-y-6">
           <div>
@@ -77,12 +77,13 @@ export const ElderCircleOfCare = () => {
           {/* Emergency Services */}
           <div className="space-y-3">
             <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-red-500" />
+              <AlertCircle className="w-5 h-5 text-rose-500" />
               Emergency
             </h3>
             <Button
               onClick={handleEmergency}
-              className="w-full h-16 text-lg font-bold bg-red-600 hover:bg-red-700 text-white shadow-lg"
+              variant="outline"
+              className="w-full h-16 text-lg font-bold border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-800"
             >
               <Phone className="w-6 h-6 mr-2" />
               Emergency Services
@@ -93,10 +94,10 @@ export const ElderCircleOfCare = () => {
           {primaryCaregiver && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                <Star className="w-5 h-5 text-amber-500 fill-amber-400" />
                 Primary Caregiver
               </h3>
-              <div className="p-4 bg-yellow-50 rounded-xl border border-yellow-200">
+              <div className="p-4 bg-amber-50 rounded-xl border border-amber-200/60">
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <div className="font-semibold text-lg text-foreground">
@@ -114,7 +115,8 @@ export const ElderCircleOfCare = () => {
                 </div>
                 <Button
                   onClick={() => handleCall(primaryCaregiver.phone, primaryCaregiver.name)}
-                  className="w-full h-12 text-base font-semibold bg-primary hover:bg-primary/90"
+                  variant="outline"
+                  className="w-full h-12 text-base font-semibold border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-800"
                   disabled={!primaryCaregiver.phone}
                 >
                   <Phone className="w-5 h-5 mr-2" />
@@ -128,14 +130,14 @@ export const ElderCircleOfCare = () => {
           {familyMembers.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <User className="w-5 h-5 text-blue-500" />
+                <User className="w-5 h-5 text-sky-500" />
                 Family
               </h3>
               <div className="space-y-2">
                 {familyMembers.map(caregiver => (
                   <div
                     key={caregiver.id}
-                    className="p-3 bg-blue-50 rounded-lg border border-blue-200"
+                    className="p-3 bg-sky-50 rounded-lg border border-sky-200/60"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div>
@@ -171,14 +173,14 @@ export const ElderCircleOfCare = () => {
           {doctors.length > 0 && (
             <div className="space-y-3">
               <h3 className="text-lg font-semibold text-foreground flex items-center gap-2">
-                <Stethoscope className="w-5 h-5 text-green-500" />
+                <Stethoscope className="w-5 h-5 text-emerald-500" />
                 Doctors
               </h3>
               <div className="space-y-2">
                 {doctors.map(caregiver => (
                   <div
                     key={caregiver.id}
-                    className="p-3 bg-green-50 rounded-lg border border-green-200"
+                    className="p-3 bg-emerald-50 rounded-lg border border-emerald-200/60"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div>

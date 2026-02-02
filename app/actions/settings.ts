@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { Caregiver } from '@/types/eeg';
 
 export async function getElderForAccount(): Promise<{ id: string; name: string; email?: string; phone?: string; avatarUrl?: string | null } | null> {
@@ -25,22 +26,28 @@ export async function getElderForAccount(): Promise<{ id: string; name: string; 
 
     if (!elderProfile?.full_name) return null;
 
-    // Get elder's auth user info for email
-    const { data: elderAuthUser } = await supabase.auth.admin.getUserById(elderProfile.id);
+    let email: string | undefined;
+    try {
+        const admin = createAdminClient();
+        const { data: elderAuthUser } = await admin.auth.admin.getUserById(elderProfile.id);
+        email = elderAuthUser?.user?.email || undefined;
+    } catch {
+        // Admin API may fail in some envs; still return profile with name and avatar
+    }
 
     return {
         id: elderProfile.id,
         name: elderProfile.full_name,
-        email: elderAuthUser?.user?.email || undefined,
-        avatarUrl: elderProfile.avatar_url || null,
+        email,
+        avatarUrl: elderProfile.avatar_url ?? null,
     };
 }
 
 export async function updateElderProfile(id: string, updates: { name?: string; avatarUrl?: string | null }) {
-    const supabase = await createClient();
+    // Use admin client - caregivers need to update elder's profile (RLS blocks own-profile-only updates)
+    const supabase = createAdminClient();
 
-    // Update profiles table
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (updates.name !== undefined) {
         updateData.full_name = updates.name;
     }

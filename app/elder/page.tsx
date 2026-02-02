@@ -7,6 +7,7 @@ import { SelfSelectMood } from '@/components/elder/SelfSelectMood';
 import { ElderDashboard } from '@/components/elder/ElderDashboard';
 import { storageService } from '@/services/storage';
 import { isAuthenticatedButMissingProfile } from '@/app/actions/user';
+import { getElderForAccount } from '@/app/actions/settings';
 import type { MoodSelection } from '@/types/eeg';
 
 export default function ElderPage() {
@@ -15,6 +16,7 @@ export default function ElderPage() {
   const [moodSelected, setMoodSelected] = useState<MoodSelection | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [checkingProfile, setCheckingProfile] = useState(true);
+  const [elder, setElder] = useState<{ name: string; avatarUrl?: string | null } | null>(null);
 
   useEffect(() => {
     // Check if user is authenticated but missing profile
@@ -45,6 +47,11 @@ export default function ElderPage() {
     const todayMood = storageService.getElderMoodSelection();
     setMoodSelected(todayMood);
     setIsLoading(false);
+
+    // Fetch elder profile for name and avatar
+    getElderForAccount().then((data) => {
+      if (data) setElder({ name: data.name, avatarUrl: data.avatarUrl });
+    });
   }, [isElder, roleLoading, checkingProfile, router]);
 
   const handleMoodSelected = (mood: MoodSelection) => {
@@ -66,5 +73,5 @@ export default function ElderPage() {
   }
 
   // Show dashboard after mood selection
-  return <ElderDashboard selectedMood={moodSelected} />;
+  return <ElderDashboard selectedMood={moodSelected} elderName={elder?.name} elderAvatarUrl={elder?.avatarUrl} />;
 }

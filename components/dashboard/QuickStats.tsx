@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 import type { HistoricalData } from '@/types/eeg';
-import { TrendingUp, TrendingDown, Minus, Clock, Heart, Brain } from 'lucide-react';
+import { TrendingUp, TrendingDown, Minus, Heart, Brain } from 'lucide-react';
 
 interface QuickStatsProps {
   data: HistoricalData[];
@@ -8,7 +8,7 @@ interface QuickStatsProps {
 
 export const QuickStats = ({ data }: QuickStatsProps) => {
   if (!data || data.length < 2) {
-    return <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 h-32 animate-pulse bg-muted/20 rounded-2xl" />;
+    return <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 h-32 animate-pulse bg-muted/20 rounded-2xl" />;
   }
 
   const today = data[data.length - 1];
@@ -35,17 +35,10 @@ export const QuickStats = ({ data }: QuickStatsProps) => {
       bgColor: 'bg-warning/10',
       invertTrend: true,
     },
-    {
-      label: 'Monitoring Time',
-      value: '8h 24m',
-      icon: Clock,
-      color: 'text-primary',
-      bgColor: 'bg-primary/10',
-    },
   ];
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 animate-fade-in">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-fade-in">
       {stats.map((stat, index) => {
         const Icon = stat.icon;
         const TrendIcon = stat.trend

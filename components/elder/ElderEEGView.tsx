@@ -15,24 +15,24 @@ export const ElderEEGView = ({ readings, isConnected }: ElderEEGViewProps) => {
 
   const getWaveStatus = (value: number, type: 'alpha' | 'beta' | 'theta') => {
     if (type === 'alpha') {
-      if (value >= 10 && value <= 12) return { label: 'Relaxed', color: 'text-green-600', bg: 'bg-green-100' };
-      return { label: 'Active', color: 'text-blue-600', bg: 'bg-blue-100' };
+      if (value >= 10 && value <= 12) return { label: 'Relaxed', color: 'text-emerald-700', bg: 'bg-emerald-50' };
+      return { label: 'Active', color: 'text-sky-700', bg: 'bg-sky-50' };
     }
     if (type === 'beta') {
-      if (value < 15) return { label: 'Calm', color: 'text-green-600', bg: 'bg-green-100' };
-      if (value < 25) return { label: 'Focused', color: 'text-blue-600', bg: 'bg-blue-100' };
-      return { label: 'Alert', color: 'text-orange-600', bg: 'bg-orange-100' };
+      if (value < 15) return { label: 'Calm', color: 'text-emerald-700', bg: 'bg-emerald-50' };
+      if (value < 25) return { label: 'Focused', color: 'text-sky-700', bg: 'bg-sky-50' };
+      return { label: 'Alert', color: 'text-amber-700', bg: 'bg-amber-50' };
     }
     if (type === 'theta') {
-      if (value >= 4 && value <= 7) return { label: 'Meditative', color: 'text-purple-600', bg: 'bg-purple-100' };
-      return { label: 'Resting', color: 'text-indigo-600', bg: 'bg-indigo-100' };
+      if (value >= 4 && value <= 7) return { label: 'Meditative', color: 'text-violet-700', bg: 'bg-violet-50' };
+      return { label: 'Resting', color: 'text-sky-700', bg: 'bg-sky-50' };
     }
-    return { label: 'Normal', color: 'text-gray-600', bg: 'bg-gray-100' };
+    return { label: 'Normal', color: 'text-sky-600', bg: 'bg-sky-50' };
   };
 
   if (!isConnected) {
     return (
-      <Card className="border-2 border-gray-200 bg-white/90">
+      <Card className="border border-sky-200/60 bg-white/95">
         <CardContent className="p-6">
           <div className="flex items-center justify-center gap-4 py-8">
             <WifiOff className="w-8 h-8 text-muted-foreground" />
@@ -52,7 +52,7 @@ export const ElderEEGView = ({ readings, isConnected }: ElderEEGViewProps) => {
 
   if (!latestReading) {
     return (
-      <Card className="border-2 border-gray-200 bg-white/90">
+      <Card className="border border-sky-200/60 bg-white/95">
         <CardContent className="p-6">
           <div className="text-center py-8">
             <Activity className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
@@ -68,17 +68,17 @@ export const ElderEEGView = ({ readings, isConnected }: ElderEEGViewProps) => {
   const thetaStatus = getWaveStatus(latestReading.theta, 'theta');
 
   return (
-    <Card className="border-2 border-pink-200 bg-white/90 shadow-lg">
+    <Card className="border border-sky-200/60 bg-white/95 shadow-sm">
       <CardContent className="p-6">
         <div className="space-y-6">
           <div className="flex items-center gap-3 mb-4">
-            <Activity className="w-6 h-6 text-pink-500" />
+            <Activity className="w-6 h-6 text-sky-500" />
             <h2 className="text-2xl font-bold text-foreground">
               Your Brain Activity
             </h2>
             <div className="ml-auto flex items-center gap-2">
-              <Wifi className="w-5 h-5 text-green-500" />
-              <span className="text-sm text-green-600 font-medium">Connected</span>
+              <Wifi className="w-5 h-5 text-emerald-500" />
+              <span className="text-sm text-emerald-600 font-medium">Connected</span>
             </div>
           </div>
 
@@ -120,7 +120,7 @@ export const ElderEEGView = ({ readings, isConnected }: ElderEEGViewProps) => {
           </div>
 
           {/* Simple Explanation */}
-          <div className="mt-6 p-4 bg-pink-50 rounded-xl border border-pink-200">
+          <div className="mt-6 p-4 bg-sky-50/50 rounded-xl border border-sky-200/60">
             <p className="text-base text-foreground">
               <strong>What this means:</strong> Your brain waves show how relaxed or active your mind is. 
               This helps us suggest activities that are right for you right now.

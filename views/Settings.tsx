@@ -58,11 +58,8 @@ import {
   Camera,
   Eye
 } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn, resolveAvatarUrl } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-const getAvatarUrl = (name: string, fallbackUrl?: string | null) =>
-  fallbackUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&size=96&background=6366f1&color=fff`;
 
 const Settings = () => {
   const { toast } = useToast();
@@ -95,6 +92,12 @@ const Settings = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Data Stream Config state
+  const SAMPLE_DEVICES = [
+    { id: 'local', label: 'Local Simulator', url: '' },
+    { id: 'ws://localhost:8765', label: 'Altrea EEG - SN-DEMO-001 (localhost:8765)', url: 'ws://localhost:8765' },
+    { id: 'ws://127.0.0.1:8765', label: 'Altrea EEG - SN-DEMO-002 (127.0.0.1:8765)', url: 'ws://127.0.0.1:8765' },
+  ];
+  const [selectedDevice, setSelectedDevice] = useState<string>('local');
   const [websocketUrl, setWebsocketUrl] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [testResult, setTestResult] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
@@ -113,9 +116,14 @@ const Settings = () => {
     }
     // Load Data Stream Config
     const savedUrl = storageService.getWebSocketUrl();
-    if (savedUrl) setWebsocketUrl(savedUrl);
+    const savedMode = storageService.getConnectionMode();
+    if (savedUrl) {
+      setWebsocketUrl(savedUrl);
+      const match = ['local', 'ws://localhost:8765', 'ws://127.0.0.1:8765'].includes(savedUrl);
+      setSelectedDevice(savedMode === 'streaming' ? (match ? savedUrl : 'custom') : 'local');
+    }
     setDemoMode(storageService.getDemoMode());
-    setConnectionMode(storageService.getConnectionMode());
+    setConnectionMode(savedMode);
   }, []);
 
   const loadData = async () => {
@@ -405,7 +413,7 @@ const Settings = () => {
 
     const testMessages = {
       critical: 'This is a test critical alert. Stress levels are high.',
-      warning: 'This is a test warning alert. Anxiety patterns detected.',
+      warning: 'This is a test warning alert. Calm levels are low.',
       info: 'This is a test info alert. Monitoring status update.',
     };
 
@@ -547,7 +555,7 @@ const Settings = () => {
               <Card className="p-4 bg-pink-50/50 border-pink-200">
                 <div className="flex items-center gap-3">
                   <Avatar className="h-12 w-12 shrink-0">
-                    <AvatarImage src={getAvatarUrl(elder.name, elder.avatarUrl)} alt={elder.name} />
+                    <AvatarImage src={resolveAvatarUrl(elder.avatarUrl, elder.name)} alt={elder.name} />
                     <AvatarFallback className="bg-pink-200 text-pink-800 text-sm">
                       {elder.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                     </AvatarFallback>
@@ -599,7 +607,7 @@ const Settings = () => {
                   >
                     <div className="flex items-start gap-3">
                       <Avatar className="h-12 w-12 shrink-0">
-                        <AvatarImage src={getAvatarUrl(caregiver.name, (caregiver as { avatarUrl?: string }).avatarUrl)} alt={caregiver.name} />
+                        <AvatarImage src={resolveAvatarUrl((caregiver as { avatarUrl?: string }).avatarUrl, caregiver.name)} alt={caregiver.name} />
                         <AvatarFallback className="bg-muted text-muted-foreground text-sm">
                           {caregiver.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
                         </AvatarFallback>
@@ -716,27 +724,6 @@ const Settings = () => {
               </p>
             </div>
 
-            {/* Anxiety Level Threshold */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Brain className="w-4 h-4 text-warning" />
-                  <Label>Anxiety Level Threshold</Label>
-                </div>
-                <span className="text-lg font-semibold">{thresholds.anxietyLevel}%</span>
-              </div>
-              <Slider
-                value={[thresholds.anxietyLevel]}
-                onValueChange={(value) => handleThresholdChange('anxietyLevel', value)}
-                min={40}
-                max={100}
-                step={5}
-              />
-              <p className="text-xs text-muted-foreground">
-                Warning alerts will be sent when anxiety exceeds this level.
-              </p>
-            </div>
-
             {/* Calm Level Threshold */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
@@ -812,6 +799,42 @@ const Settings = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold">Select Device</Label>
+              <Select
+                value={selectedDevice}
+                onValueChange={(value) => {
+                  setSelectedDevice(value);
+                  if (value === 'local') {
+                    setConnectionMode('localStorage');
+                    setWebsocketUrl('');
+                  } else if (value === 'custom') {
+                    setConnectionMode('streaming');
+                    setConnectionStatus('disconnected');
+                    setTestResult('idle');
+                    // Keep current websocketUrl for editing
+                  } else {
+                    setConnectionMode('streaming');
+                    setWebsocketUrl(value);
+                    setConnectionStatus('disconnected');
+                    setTestResult('idle');
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a device" />
+                </SelectTrigger>
+                <SelectContent>
+                  {SAMPLE_DEVICES.map((d) => (
+                    <SelectItem key={d.id} value={d.id}>
+                      {d.label}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="custom">Custom WebSocket URL...</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex items-center justify-between p-3 rounded-lg border bg-secondary/30">
               <div className="flex-1 min-w-0">
                 <Label className="text-sm font-semibold">Connection Mode</Label>
@@ -950,7 +973,7 @@ const Settings = () => {
             <div className="flex flex-col items-center gap-3">
               <Avatar className="h-20 w-20">
                 <AvatarImage 
-                  src={previewImage || (formData.avatarUrl ? formData.avatarUrl : formData.name ? getAvatarUrl(formData.name) : undefined)} 
+                  src={previewImage || resolveAvatarUrl(formData.avatarUrl, formData.name || '')} 
                   alt={formData.name || 'Avatar'} 
                 />
                 <AvatarFallback className="bg-muted text-muted-foreground text-lg">

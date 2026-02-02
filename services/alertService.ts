@@ -23,30 +23,12 @@ export const alertService = {
       };
     }
 
-    // Warning: High anxiety
-    if (analysis.anxietyLevel >= thresholds.anxietyLevel) {
-      return {
-        shouldAlert: true,
-        alertType: 'warning',
-        message: `Warning: Anxiety patterns are elevated (${Math.round(analysis.anxietyLevel)}%) beyond normal range.`,
-      };
-    }
-
     // Warning: Very low calm level
     if (analysis.calmLevel <= thresholds.calmLevel) {
       return {
         shouldAlert: true,
         alertType: 'warning',
         message: `Warning: Calm levels are unusually low (${Math.round(analysis.calmLevel)}%). Monitoring closely.`,
-      };
-    }
-
-    // Info: Anxious state detected
-    if (analysis.state === 'anxious' && analysis.confidence > 0.7) {
-      return {
-        shouldAlert: true,
-        alertType: 'info',
-        message: 'Info: Prolonged anxious state detected. Monitoring closely.',
       };
     }
 
@@ -101,9 +83,8 @@ export const alertService = {
     const timeSinceLastAlert = now.getTime() - lastAlertTime.getTime();
 
     // Prevent duplicate alerts within time windows
-    // Minimal cooldown for critical alerts to allow testing multiple triggers from simulator
     const cooldownPeriods = {
-      critical: 2000,    // 2 seconds (minimal cooldown for testing)
+      critical: 60000,   // 1 minute - avoid spamming multiple stress alerts
       warning: 300000,   // 5 minutes
       info: 600000,      // 10 minutes
     };

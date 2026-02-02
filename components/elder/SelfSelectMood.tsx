@@ -24,8 +24,8 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
 
   if (step === 'initial') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 p-4">
-        <Card className="w-full max-w-2xl border-2 border-pink-200 shadow-lg">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50/50 via-white to-rose-50/50 p-4">
+        <Card className="w-full max-w-2xl border border-sky-200/60 shadow-sm">
           <CardContent className="p-8 md:p-12">
             <div className="text-center space-y-8">
               <div className="space-y-4">
@@ -39,11 +39,12 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
                 <Button
+                  variant="outline"
                   onClick={() => handleInitialSelection('good')}
                   className={cn(
                     "h-32 md:h-40 text-2xl md:text-3xl font-bold",
-                    "bg-green-500 hover:bg-green-600 text-white",
-                    "shadow-lg hover:shadow-xl transition-all",
+                    "bg-emerald-50 border-emerald-200 hover:bg-emerald-100 text-emerald-800",
+                    "transition-all",
                     "flex flex-col items-center justify-center gap-4"
                   )}
                 >
@@ -52,11 +53,12 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
                 </Button>
 
                 <Button
+                  variant="outline"
                   onClick={() => handleInitialSelection('bad')}
                   className={cn(
                     "h-32 md:h-40 text-2xl md:text-3xl font-bold",
-                    "bg-red-500 hover:bg-red-600 text-white",
-                    "shadow-lg hover:shadow-xl transition-all",
+                    "bg-rose-50 border-rose-200 hover:bg-rose-100 text-rose-800",
+                    "transition-all",
                     "flex flex-col items-center justify-center gap-4"
                   )}
                 >
@@ -73,8 +75,8 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
 
   if (step === 'good') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 via-yellow-50 to-blue-50 p-4">
-        <Card className="w-full max-w-2xl border-2 border-green-200 shadow-lg">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50/50 via-white to-rose-50/50 p-4">
+        <Card className="w-full max-w-2xl border border-sky-200/60 shadow-sm">
           <CardContent className="p-8 md:p-12">
             <div className="text-center space-y-8">
               <Button
@@ -96,11 +98,12 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-12">
                 <Button
+                  variant="outline"
                   onClick={() => handleMoodSelect('happy')}
                   className={cn(
                     "h-32 md:h-40 text-xl md:text-2xl font-bold",
-                    "bg-yellow-400 hover:bg-yellow-500 text-gray-900",
-                    "shadow-lg hover:shadow-xl transition-all",
+                    "bg-amber-50 border-amber-200 hover:bg-amber-100 text-amber-800",
+                    "transition-all",
                     "flex flex-col items-center justify-center gap-4"
                   )}
                 >
@@ -109,11 +112,12 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
                 </Button>
 
                 <Button
+                  variant="outline"
                   onClick={() => handleMoodSelect('calm')}
                   className={cn(
                     "h-32 md:h-40 text-xl md:text-2xl font-bold",
-                    "bg-green-400 hover:bg-green-500 text-gray-900",
-                    "shadow-lg hover:shadow-xl transition-all",
+                    "bg-emerald-50 border-emerald-200 hover:bg-emerald-100 text-emerald-800",
+                    "transition-all",
                     "flex flex-col items-center justify-center gap-4"
                   )}
                 >
@@ -130,8 +134,8 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
 
   if (step === 'bad') {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-red-50 to-purple-50 p-4">
-        <Card className="w-full max-w-2xl border-2 border-red-200 shadow-lg">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-sky-50/50 via-white to-rose-50/50 p-4">
+        <Card className="w-full max-w-2xl border border-sky-200/60 shadow-sm">
           <CardContent className="p-8 md:p-12">
             <div className="text-center space-y-8">
               <Button
@@ -153,11 +157,12 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6 mt-12">
                 <Button
+                  variant="outline"
                   onClick={() => handleMoodSelect('stressed')}
                   className={cn(
                     "h-32 md:h-40 text-lg md:text-xl font-bold",
-                    "bg-red-600 hover:bg-red-700 text-white",
-                    "shadow-lg hover:shadow-xl transition-all",
+                    "bg-rose-50 border-rose-200 hover:bg-rose-100 text-rose-800",
+                    "transition-all",
                     "flex flex-col items-center justify-center gap-4"
                   )}
                 >
@@ -166,11 +171,12 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
                 </Button>
 
                 <Button
+                  variant="outline"
                   onClick={() => handleMoodSelect('lonely')}
                   className={cn(
                     "h-32 md:h-40 text-lg md:text-xl font-bold",
-                    "bg-blue-700 hover:bg-blue-800 text-white",
-                    "shadow-lg hover:shadow-xl transition-all",
+                    "bg-sky-50 border-sky-200 hover:bg-sky-100 text-sky-800",
+                    "transition-all",
                     "flex flex-col items-center justify-center gap-4"
                   )}
                 >
@@ -179,11 +185,12 @@ export const SelfSelectMood = ({ onMoodSelected }: SelfSelectMoodProps) => {
                 </Button>
 
                 <Button
+                  variant="outline"
                   onClick={() => handleMoodSelect('sad')}
                   className={cn(
                     "h-32 md:h-40 text-lg md:text-xl font-bold",
-                    "bg-purple-700 hover:bg-purple-800 text-white",
-                    "shadow-lg hover:shadow-xl transition-all",
+                    "bg-violet-50 border-violet-200 hover:bg-violet-100 text-violet-800",
+                    "transition-all",
                     "flex flex-col items-center justify-center gap-4"
                   )}
                 >

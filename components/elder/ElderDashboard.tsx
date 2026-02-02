@@ -7,18 +7,23 @@ import { ElderInterventions } from './ElderInterventions';
 import { ElderCircleOfCare } from './ElderCircleOfCare';
 import type { MoodSelection } from '@/types/eeg';
 import { Card, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, AlertCircle, Sparkles } from 'lucide-react';
-import { useMemo } from 'react';
-import { cn } from '@/lib/utils';
+import { useMemo, useState, useEffect } from 'react';
+import { cn, resolveAvatarUrl } from '@/lib/utils';
+
+const STABILITY_MS = 15000; // Same as caregiver: only update activities after 15s of stable state
 
 interface ElderDashboardProps {
   selectedMood: MoodSelection;
+  elderName?: string | null;
+  elderAvatarUrl?: string | null;
 }
 
-export const ElderDashboard = ({ selectedMood }: ElderDashboardProps) => {
+export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: ElderDashboardProps) => {
   const { readings, analysis, isConnected } = useEEGSimulation();
 
-  // Determine stress level category for UX interventions
+  // Determine stress level category (same logic as caregiver)
   const stressCategory = useMemo(() => {
     const stress = analysis.stressLevel;
     if (stress >= 80) return 'critical';
@@ -28,78 +33,59 @@ export const ElderDashboard = ({ selectedMood }: ElderDashboardProps) => {
     return 'calm';
   }, [analysis.stressLevel]);
 
-  // Get background gradient based on stress level
-  const backgroundGradient = useMemo(() => {
-    switch (stressCategory) {
-      case 'critical':
-        return 'from-red-50 via-orange-50 to-pink-50';
-      case 'high':
-        return 'from-orange-50 via-yellow-50 to-pink-50';
-      case 'moderate':
-        return 'from-yellow-50 via-pink-50 to-purple-50';
-      case 'low':
-        return 'from-pink-50 via-purple-50 to-blue-50';
-      default:
-        return 'from-pink-50 via-purple-50 to-blue-50';
-    }
+  // Stable category for activities - only update after state is stable for 15s (same interval as caregiver)
+  const [stableStressCategory, setStableStressCategory] = useState<typeof stressCategory>(stressCategory);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setStableStressCategory(stressCategory);
+    }, STABILITY_MS);
+    return () => clearTimeout(t);
   }, [stressCategory]);
 
-  // Get welcome message based on stress level
+  const backgroundGradient = 'from-sky-50/50 via-white to-rose-50/50';
+
+  // Get welcome message based on stress level (include name when available)
+  const displayName = elderName || '';
   const welcomeMessage = useMemo(() => {
+    const withName = displayName ? `Welcome back, ${displayName}!` : 'Welcome back!';
     switch (stressCategory) {
       case 'critical':
         return {
-          title: "Let's take a moment together",
+          title: displayName ? `${displayName}, let's take a moment together` : "Let's take a moment together",
           subtitle: "I'm here to help you feel better. Try some calming activities below.",
         };
       case 'high':
         return {
-          title: "I notice you might be feeling stressed",
+          title: displayName ? `${displayName}, I notice you might be feeling stressed` : "I notice you might be feeling stressed",
           subtitle: "Here are some activities that can help you relax.",
         };
       case 'moderate':
         return {
-          title: "Welcome back!",
+          title: withName,
           subtitle: "We're here to support you today.",
         };
       default:
         return {
-          title: "Welcome back!",
+          title: withName,
           subtitle: "We're here to support you today.",
         };
     }
-  }, [stressCategory]);
+  }, [stressCategory, displayName]);
 
   return (
     <div className={cn("min-h-screen bg-gradient-to-br transition-all duration-500", backgroundGradient)}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Message - Stress-responsive */}
-        <Card className={cn(
-          "mb-6 border-2 bg-white/80 transition-all duration-500",
-          stressCategory === 'critical' && "border-red-300 shadow-lg",
-          stressCategory === 'high' && "border-orange-300 shadow-md",
-          stressCategory === 'moderate' && "border-yellow-200",
-          (stressCategory === 'low' || stressCategory === 'calm') && "border-pink-200"
-        )}>
+        {/* Welcome Message */}
+        <Card className="mb-6 border border-sky-200/60 bg-white/95 shadow-sm">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
-              <div className={cn(
-                "w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500",
-                stressCategory === 'critical' && "bg-red-100 animate-pulse",
-                stressCategory === 'high' && "bg-orange-100",
-                stressCategory === 'moderate' && "bg-yellow-100",
-                (stressCategory === 'low' || stressCategory === 'calm') && "bg-pink-100"
-              )}>
-                {stressCategory === 'critical' || stressCategory === 'high' ? (
-                  <AlertCircle className={cn(
-                    "w-8 h-8 transition-all duration-500",
-                    stressCategory === 'critical' && "text-red-500",
-                    stressCategory === 'high' && "text-orange-500"
-                  )} />
-                ) : (
-                  <Heart className="w-8 h-8 text-pink-500" />
-                )}
-              </div>
+              <Avatar className="h-16 w-16 shrink-0">
+                <AvatarImage src={resolveAvatarUrl(elderAvatarUrl, displayName || 'User')} alt={displayName || 'Profile'} />
+                <AvatarFallback className="bg-rose-100 text-rose-700 text-xl">
+                  {displayName ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2) : <Heart className="w-8 h-8" />}
+                </AvatarFallback>
+              </Avatar>
               <div className="flex-1">
                 <h1 className="text-3xl font-bold text-foreground">
                   {welcomeMessage.title}
@@ -110,9 +96,9 @@ export const ElderDashboard = ({ selectedMood }: ElderDashboardProps) => {
                 {/* Stress level indicator */}
                 {stressCategory === 'critical' || stressCategory === 'high' ? (
                   <div className="mt-3 flex items-center gap-2">
-                    <Sparkles className="w-4 h-4 text-orange-500" />
-                    <span className="text-sm font-medium text-orange-700">
-                      Stress Level: {Math.round(analysis.stressLevel)}% - Try the activities below to help
+                    <Sparkles className="w-4 h-4 text-rose-500" />
+                    <span className="text-sm font-medium text-rose-700">
+                      Try the activities below to help you relax
                     </span>
                   </div>
                 ) : null}
@@ -121,15 +107,12 @@ export const ElderDashboard = ({ selectedMood }: ElderDashboardProps) => {
           </CardContent>
         </Card>
 
-        {/* Activities for You - Enhanced visibility for high stress */}
-        <div className={cn(
-          "mb-6 transition-all duration-500",
-          (stressCategory === 'critical' || stressCategory === 'high') && "animate-pulse-gentle"
-        )}>
+        {/* Activities for You */}
+        <div className="mb-6">
           <ElderInterventions
             analysis={analysis}
             selectedMood={selectedMood}
-            stressCategory={stressCategory}
+            stressCategory={stableStressCategory}
           />
         </div>
 

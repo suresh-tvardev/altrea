@@ -23,19 +23,29 @@ export const ElderInterventions = ({ analysis, selectedMood, stressCategory = 'c
   const getRecommendations = () => {
     const recommendations: Array<{ title: string; icon: any; action: string; color: string; priority: number }> = [];
 
+    // Soft pastel colors - subtle, not flashy
+    const colors = {
+      breathing: 'bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100',
+      music: 'bg-violet-50 text-violet-800 border border-violet-200 hover:bg-violet-100',
+      call: 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100',
+      photo: 'bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100',
+      journal: 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100',
+      memory: 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100',
+      memories: 'bg-violet-50 text-violet-800 border border-violet-200 hover:bg-violet-100',
+      default: 'bg-sky-50 text-sky-800 border border-sky-200 hover:bg-sky-100',
+    };
+
     // Priority recommendations based on stress level
     if (stressCategory === 'critical' || stressCategory === 'high') {
-      // High priority calming activities for high stress
       recommendations.push(
-        { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: 'bg-blue-500', priority: 1 },
-        { title: 'Calm Music', icon: Music, action: 'music', color: 'bg-purple-500', priority: 2 },
-        { title: 'Call Family', icon: Phone, action: 'call', color: 'bg-pink-500', priority: 3 }
+        { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: colors.breathing, priority: 1 },
+        { title: 'Calm Music', icon: Music, action: 'music', color: colors.music, priority: 2 },
+        { title: 'Call Family', icon: Phone, action: 'call', color: colors.call, priority: 3 }
       );
     } else if (stressCategory === 'moderate') {
-      // Moderate stress - mix of calming and engaging
       recommendations.push(
-        { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: 'bg-blue-500', priority: 1 },
-        { title: 'Calm Music', icon: Music, action: 'music', color: 'bg-purple-500', priority: 2 }
+        { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: colors.breathing, priority: 1 },
+        { title: 'Calm Music', icon: Music, action: 'music', color: colors.music, priority: 2 }
       );
     }
 
@@ -43,23 +53,23 @@ export const ElderInterventions = ({ analysis, selectedMood, stressCategory = 'c
     if (stressCategory !== 'critical' && stressCategory !== 'high') {
       if (selectedMood === 'happy' || selectedMood === 'calm') {
         recommendations.push(
-          { title: 'Capture This Moment', icon: Heart, action: 'photo', color: 'bg-yellow-500', priority: 3 },
-          { title: 'Gratitude Journal', icon: Sparkles, action: 'journal', color: 'bg-green-500', priority: 4 }
+          { title: 'Capture This Moment', icon: Heart, action: 'photo', color: colors.photo, priority: 3 },
+          { title: 'Gratitude Journal', icon: Sparkles, action: 'journal', color: colors.journal, priority: 4 }
         );
       } else if (selectedMood === 'stressed') {
         recommendations.push(
-          { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: 'bg-blue-500', priority: 1 },
-          { title: 'Calm Music', icon: Music, action: 'music', color: 'bg-purple-500', priority: 2 }
+          { title: 'Breathing Exercise', icon: Volume2, action: 'breathing', color: colors.breathing, priority: 1 },
+          { title: 'Calm Music', icon: Music, action: 'music', color: colors.music, priority: 2 }
         );
       } else if (selectedMood === 'lonely') {
         recommendations.push(
-          { title: 'Call Family', icon: Phone, action: 'call', color: 'bg-pink-500', priority: 1 },
-          { title: 'Memory Sharing', icon: Heart, action: 'memory', color: 'bg-red-500', priority: 2 }
+          { title: 'Call Family', icon: Phone, action: 'call', color: colors.call, priority: 1 },
+          { title: 'Memory Sharing', icon: Heart, action: 'memory', color: colors.memory, priority: 2 }
         );
       } else if (selectedMood === 'sad') {
         recommendations.push(
-          { title: 'View Memories', icon: Heart, action: 'memories', color: 'bg-purple-500', priority: 1 },
-          { title: 'Listen to Music', icon: Music, action: 'music', color: 'bg-blue-500', priority: 2 }
+          { title: 'View Memories', icon: Heart, action: 'memories', color: colors.memories, priority: 1 },
+          { title: 'Listen to Music', icon: Music, action: 'music', color: colors.music, priority: 2 }
         );
       }
     }
@@ -72,7 +82,7 @@ export const ElderInterventions = ({ analysis, selectedMood, stressCategory = 'c
           title: 'Play Music',
           icon: Music,
           action: 'music',
-          color: 'bg-indigo-500',
+          color: colors.default,
           priority: 5
         });
       }
@@ -104,20 +114,20 @@ export const ElderInterventions = ({ analysis, selectedMood, stressCategory = 'c
 
   return (
     <Card className={cn(
-      "border-2 bg-white/90 shadow-lg transition-all duration-500",
-      isHighStress ? "border-red-300 shadow-xl" : "border-pink-200"
+      "border bg-white/95 shadow-sm transition-all duration-500",
+      isHighStress ? "border-rose-200" : "border-sky-200/60"
     )}>
       <CardContent className="p-6">
         <div className="space-y-4">
           <div className="flex items-center gap-3">
             {isHighStress ? (
-              <AlertCircle className="w-6 h-6 text-red-500 animate-pulse" />
+              <AlertCircle className="w-6 h-6 text-rose-600" />
             ) : (
-              <Sparkles className="w-6 h-6 text-pink-500" />
+              <Sparkles className="w-6 h-6 text-sky-500" />
             )}
             <h2 className={cn(
               "text-2xl font-bold transition-colors duration-500",
-              isHighStress ? "text-red-700" : "text-foreground"
+              isHighStress ? "text-rose-700" : "text-foreground"
             )}>
               {isHighStress ? "Calming Activities for You" : "Activities for You"}
             </h2>
@@ -125,7 +135,7 @@ export const ElderInterventions = ({ analysis, selectedMood, stressCategory = 'c
 
           <p className={cn(
             "text-lg transition-colors duration-500",
-            isHighStress ? "text-red-600 font-medium" : "text-muted-foreground"
+            isHighStress ? "text-rose-600 font-medium" : "text-muted-foreground"
           )}>
             {isHighStress 
               ? "I notice you might be feeling stressed. These activities can help you feel calmer:"
@@ -140,19 +150,19 @@ export const ElderInterventions = ({ analysis, selectedMood, stressCategory = 'c
               return (
                 <Button
                   key={index}
+                  variant="outline"
                   onClick={() => handleAction(rec.action)}
                   className={cn(
-                    "h-24 text-lg font-semibold text-white",
+                    "h-24 text-lg font-semibold",
                     rec.color,
-                    "hover:opacity-90 shadow-md hover:shadow-lg transition-all",
-                    "flex flex-col items-center justify-center gap-2",
-                    isPriority && "ring-4 ring-red-300 ring-opacity-50 animate-pulse"
+                    "transition-all",
+                    "flex flex-col items-center justify-center gap-2"
                   )}
                 >
                   <Icon className="w-6 h-6" />
                   <span>{rec.title}</span>
                   {isPriority && (
-                    <span className="text-xs font-normal opacity-90">Try this first</span>
+                    <span className="text-xs font-normal opacity-80">Try this first</span>
                   )}
                 </Button>
               );

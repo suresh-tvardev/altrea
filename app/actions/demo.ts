@@ -319,15 +319,25 @@ export async function checkDemoUsersExist() {
             'saraz@mit.edu'
         ];
 
-        // Check if any demo users exist by email
-        const { data: users } = await adminClient.auth.admin.listUsers();
-        const demoUsersExist = users?.users.some(user => 
-            user.email && demoEmails.includes(user.email)
-        ) || false;
+        // listUsers() returns max 50 by default; use perPage to fetch more
+        let page = 1;
+        const perPage = 1000;
+        let found = false;
 
-        return {
-            exists: demoUsersExist
-        };
+        while (true) {
+            const { data, error } = await adminClient.auth.admin.listUsers({ page, perPage });
+            if (error) throw error;
+
+            const users = data?.users ?? [];
+            found = users.some(user => user.email && demoEmails.includes(user.email));
+
+            if (found) break;
+            // Stop if we got fewer than perPage (last page) or no users
+            if (users.length < perPage || users.length === 0) break;
+            page++;
+        }
+
+        return { exists: found };
     } catch (error: any) {
         console.error('Error checking demo users:', error);
         return { exists: false, error: error.message };
