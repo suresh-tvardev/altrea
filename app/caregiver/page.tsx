@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { EmotionalStateIndicator } from '@/components/dashboard/EmotionalStateIndicator';
-import { EEGWaveform } from '@/components/dashboard/EEGWaveform';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
 import { CaregiversPanel } from '@/components/dashboard/CaregiversPanel';
 import { HistoricalChart } from '@/components/dashboard/HistoricalChart';
@@ -44,12 +43,10 @@ export default function CaregiverDashboard() {
     const { isElder, loading: roleLoading } = useRole();
     const [checkingProfile, setCheckingProfile] = useState(true);
     const {
-        readings,
         analysis,
         alerts,
         historicalData,
         insights,
-        isConnected,
         setIsConnected,
         acknowledgeAlert,
         shouldShowIntervention,
@@ -234,7 +231,6 @@ export default function CaregiverDashboard() {
                 {/* Left Column - Real-time Monitoring */}
                 <div className="lg:col-span-2 space-y-6">
                     <EmotionalStateIndicator analysis={analysis} />
-                    <EEGWaveform readings={readings} isConnected={isConnected} />
                 </div>
 
                 {/* Right Column - Alerts, Caregivers */}

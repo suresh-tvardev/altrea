@@ -50,18 +50,7 @@ export const ElderEEGView = ({ readings, isConnected }: ElderEEGViewProps) => {
     );
   }
 
-  if (!latestReading) {
-    return (
-      <Card className="border border-sky-200/60 bg-white/95">
-        <CardContent className="p-6">
-          <div className="text-center py-8">
-            <Activity className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
-            <p className="text-muted-foreground">Waiting for data...</p>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!latestReading) return null;
 
   const alphaStatus = getWaveStatus(latestReading.alpha, 'alpha');
   const betaStatus = getWaveStatus(latestReading.beta, 'beta');

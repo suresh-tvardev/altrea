@@ -434,21 +434,9 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     if (isInitializedRef.current) return;
     isInitializedRef.current = true;
 
-    // Check connection mode preference
-    const connectionMode = storageService.getConnectionMode();
-    
-    // Only use WebSocket if connection mode is 'streaming' and URL is configured
-    if (connectionMode === 'streaming') {
-      const wsUrl = storageService.getWebSocketUrl();
-      if (wsUrl && isConnected) {
-        connectWebSocket();
-      } else {
-        setIsUsingWebSocket(false);
-      }
-    } else {
-      // localStorage mode - don't use WebSocket
-      setIsUsingWebSocket(false);
-    }
+    // For now: always use simulated data from localStorage (even when connection mode is WebSocket)
+    // Skip actual WebSocket connection and use mock data with calm/stress interval
+    setIsUsingWebSocket(false);
 
     // Cleanup only on unmount (when app closes)
     return () => {
@@ -478,28 +466,12 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       return;
     }
     
-    // Check connection mode preference
-    const connectionMode = storageService.getConnectionMode();
-    
-    // Only use WebSocket if connection mode is 'streaming' and URL is configured
-    if (connectionMode === 'streaming') {
-      const wsUrl = storageService.getWebSocketUrl();
-      if (wsUrl && isConnected && !globalWsRef) {
-        connectWebSocket();
-      } else if (!isConnected && globalWsRef) {
-        globalWsRef.close();
-        globalWsRef = null;
-        setIsUsingWebSocket(false);
-        globalIsUsingWebSocket = false;
-      }
-    } else {
-      // localStorage mode - ensure WebSocket is not used
-      if (globalWsRef) {
-        globalWsRef.close();
-        globalWsRef = null;
-        setIsUsingWebSocket(false);
-        globalIsUsingWebSocket = false;
-      }
+    // For now: always use simulated data - don't connect WebSocket
+    if (globalWsRef) {
+      globalWsRef.close();
+      globalWsRef = null;
+      setIsUsingWebSocket(false);
+      globalIsUsingWebSocket = false;
     }
   }, [isConnected, connectWebSocket, role, roleLoading]);
 
@@ -507,30 +479,18 @@ export function EEGProvider({ children }: { children: ReactNode }) {
   const lastProcessedTrigger = useRef<number>(0);
   const lastSimulatorReadingTime = useRef<number>(0); // Track when last simulator reading was received
 
-  // Listen to localStorage for simulator readings (when using localStorage mode)
+  // Simulate data from localStorage (calm for 40s, then stress) - used regardless of connection mode for now
   useEffect(() => {
-    // Check connection mode preference
-    const connectionMode = storageService.getConnectionMode();
-    
-    console.log('localStorage listener effect:', {
-      connectionMode,
-      globalIsUsingWebSocket,
-      isConnected,
-      willListen: connectionMode === 'localStorage' && !globalIsUsingWebSocket && isConnected,
-    });
-
-    // Only listen to localStorage if connection mode is 'localStorage'
-    if (connectionMode !== 'localStorage' || globalIsUsingWebSocket || !isConnected) {
-      // Clear mock data interval if using WebSocket or streaming mode
+    // Skip if using WebSocket (real connection) or not authenticated
+    if (globalIsUsingWebSocket || !isConnected) {
       if (mockDataIntervalRef.current) {
         clearInterval(mockDataIntervalRef.current);
         mockDataIntervalRef.current = null;
       }
-      console.log('Skipping localStorage listener - using streaming mode, WebSocket, or not connected');
       return;
     }
 
-    console.log('Setting up localStorage listener for simulator data');
+    console.log('Setting up simulated data (localStorage + mock interval)');
 
     // Mark initial load as complete after a short delay
     const initialLoadTimeout = setTimeout(() => {
@@ -701,8 +661,14 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     }, 500); // Poll every 500ms to catch simulator data quickly
 
     // Default simulation: calm for 40s, then stress (1 Hz)
+    // When simulator triggers, skip mock data for 8s so simulator data is visible
+    const SIMULATOR_PRIORITY_MS = 8000;
     simulationStartTimeRef.current = Date.now();
     mockDataIntervalRef.current = setInterval(() => {
+      const sinceSimulator = Date.now() - lastSimulatorReadingTime.current;
+      if (sinceSimulator < SIMULATOR_PRIORITY_MS) {
+        return; // Simulator data takes priority - don't overwrite
+      }
       const elapsedMs = Date.now() - simulationStartTimeRef.current;
       const phase = elapsedMs < 40000 ? 'calm' : 'stress';
       const reading = phase === 'calm' ? generateCalmEEGReading() : generateStressEEGReading();

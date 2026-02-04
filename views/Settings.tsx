@@ -90,7 +90,7 @@ const Settings = () => {
   // Data Stream Config state (demo: streaming enabled by default with ws://192.168.224.1:8765)
   const DEFAULT_WEBSOCKET_URL = 'ws://192.168.224.1:8765';
   const SAMPLE_DEVICES = [
-    { id: 'neurable-mw75', label: 'Neurable MW75 Neuro', url: DEFAULT_WEBSOCKET_URL },
+    { id: 'neurable-mw75', label: 'Altrea MW75 Neuro', url: DEFAULT_WEBSOCKET_URL },
     { id: 'muse-s', label: 'Muse S (Athena)', url: DEFAULT_WEBSOCKET_URL },
     { id: 'emotiv-insight', label: 'Emotiv Insight', url: DEFAULT_WEBSOCKET_URL },
     { id: 'neurosity-crown', label: 'Neurosity Crown', url: DEFAULT_WEBSOCKET_URL },

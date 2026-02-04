@@ -5,6 +5,7 @@ import { ElderPersonalStats } from './ElderPersonalStats';
 import { ElderEEGView } from './ElderEEGView';
 import { ElderInterventions } from './ElderInterventions';
 import { ElderCircleOfCare } from './ElderCircleOfCare';
+import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
 import type { MoodSelection } from '@/types/eeg';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -21,7 +22,7 @@ interface ElderDashboardProps {
 }
 
 export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: ElderDashboardProps) => {
-  const { readings, analysis, isConnected } = useEEGSimulation();
+  const { readings, analysis, isConnected, insights } = useEEGSimulation();
 
   // Determine stress level category (same logic as caregiver)
   const stressCategory = useMemo(() => {
@@ -107,23 +108,24 @@ export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: Elde
           </CardContent>
         </Card>
 
-        {/* Activities for You */}
-        <div className="mb-6">
-          <ElderInterventions
-            analysis={analysis}
+        {/* You're feeling [mood] today & Personalized Insights - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+          <ElderPersonalStats
+            historicalData={readings}
             selectedMood={selectedMood}
-            stressCategory={stableStressCategory}
           />
+          <InsightsPanel insights={insights} />
         </div>
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Personal Stats */}
-            <ElderPersonalStats
-              historicalData={readings}
+            {/* Activities for You */}
+            <ElderInterventions
+              analysis={analysis}
               selectedMood={selectedMood}
+              stressCategory={stableStressCategory}
             />
 
             {/* Simplified EEG View */}
