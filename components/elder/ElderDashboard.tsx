@@ -6,7 +6,7 @@ import { ElderEEGView } from './ElderEEGView';
 import { ElderInterventions } from './ElderInterventions';
 import { ElderCircleOfCare } from './ElderCircleOfCare';
 import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
-import type { MoodSelection } from '@/types/eeg';
+import type { MoodSelection, Insight } from '@/types/eeg';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Heart, AlertCircle, Sparkles } from 'lucide-react';
@@ -22,7 +22,7 @@ interface ElderDashboardProps {
 }
 
 export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: ElderDashboardProps) => {
-  const { readings, analysis, isConnected, insights } = useEEGSimulation();
+  const { readings, analysis, isConnected } = useEEGSimulation();
 
   // Determine stress level category (same logic as caregiver)
   const stressCategory = useMemo(() => {
@@ -74,6 +74,24 @@ export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: Elde
     }
   }, [stressCategory, displayName]);
 
+  // Elder-specific personalized insights (HAPPY vs STRESSED)
+  const elderInsights = useMemo((): Insight[] => {
+    const isStressed = ['moderate', 'high', 'critical'].includes(stableStressCategory);
+    const now = new Date();
+    if (isStressed) {
+      return [
+        { id: 'e1', title: 'Increased Stress Periods', description: 'Your stress indicators are slightly elevated compared to usual this week.', type: 'warning', timestamp: now },
+        { id: 'e2', title: 'Evening Relaxation', description: 'Consider adding a brief relaxation routine before dinner to maintain evening calmness.', type: 'suggestion', timestamp: now },
+        { id: 'e3', title: 'Connection Boost', description: 'A brief call or message with someone familiar may help improve mood.', type: 'suggestion', timestamp: now },
+      ];
+    }
+    return [
+      { id: 'e1', title: 'Positive Momentum', description: 'Your emotional indicators show a very strong and positive trend this week.', type: 'positive', timestamp: now },
+      { id: 'e2', title: 'Reflective Growth', description: 'This is a perfect window for your gratitude journal; your mind is in an ideal state for reflection.', type: 'suggestion', timestamp: now },
+      { id: 'e3', title: 'Creative Spark', description: 'Your neural signals show high relaxation, a great time to capture a photo or share a memory with the family.', type: 'suggestion', timestamp: now },
+    ];
+  }, [stableStressCategory]);
+
   return (
     <div className={cn("min-h-screen bg-gradient-to-br transition-all duration-500", backgroundGradient)}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -114,7 +132,7 @@ export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: Elde
             historicalData={readings}
             selectedMood={selectedMood}
           />
-          <InsightsPanel insights={insights} />
+          <InsightsPanel insights={elderInsights} />
         </div>
 
         {/* Main Content Grid */}

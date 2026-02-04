@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { EmotionalStateIndicator } from '@/components/dashboard/EmotionalStateIndicator';
 import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
@@ -30,7 +30,7 @@ import { getProfile } from '@/app/actions/profile';
 import { getElderForAccount } from '@/app/actions/settings';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { resolveAvatarUrl } from '@/lib/utils';
-import type { Alert } from '@/types/eeg';
+import type { Alert, Insight } from '@/types/eeg';
 
 // Demo account credentials for caregiver (Garcia Care Team)
 const DEMO_CAREGIVER = {
@@ -46,7 +46,6 @@ export default function CaregiverDashboard() {
         analysis,
         alerts,
         historicalData,
-        insights,
         setIsConnected,
         acknowledgeAlert,
         shouldShowIntervention,
@@ -149,6 +148,25 @@ export default function CaregiverDashboard() {
         }
     };
 
+    // Caregiver-specific personalized insights (HAPPY vs STRESSED) - must be before early return (Rules of Hooks)
+    const elderDisplayName = elderName || 'your loved one';
+    const isStressed = analysis.stressLevel >= 50;
+    const caregiverInsights = useMemo((): Insight[] => {
+        const now = new Date();
+        if (isStressed) {
+            return [
+                { id: 'c1', title: 'Increased Stress Periods', description: `${elderDisplayName}'s stress levels are slightly higher than their personal baseline this week.`, type: 'warning', timestamp: now },
+                { id: 'c2', title: 'Connection Boost', description: 'Consider recording a brief voice message or sending a favorite photo to provide comfort and connection.', type: 'suggestion', timestamp: now },
+                { id: 'c3', title: 'Proactive Shift', description: 'The data suggests a need for a shift in environment; perhaps suggest a change in music or a short walk.', type: 'suggestion', timestamp: now },
+            ];
+        }
+        return [
+            { id: 'c1', title: 'Positive Momentum', description: `${elderDisplayName} has been calm and happy most of this week. It's a great time to ask for a new photo for their digital frame.`, type: 'positive', timestamp: now },
+            { id: 'c2', title: 'Reflective Growth', description: "We're seeing high emotional stability today. A prompt for their Gratitude Journal would be highly effective right now.", type: 'suggestion', timestamp: now },
+            { id: 'c3', title: 'Optimal Relaxation', description: `${elderDisplayName} is in a very relaxed state. Playing their favorite music now will help maintain this peaceful "flow."`, type: 'suggestion', timestamp: now },
+        ];
+    }, [elderDisplayName, isStressed]);
+
     const handleLoginAndOpen = async (page: 'simulator' | 'comparison') => {
         setIsLoggingIn(page);
         try {
@@ -218,7 +236,7 @@ export default function CaregiverDashboard() {
             {/* Weekly Overview & Personalized Insights - Top */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <HistoricalChart data={historicalData} />
-                <InsightsPanel insights={insights} />
+                <InsightsPanel insights={caregiverInsights} />
             </div>
 
             {/* Quick Stats */}
