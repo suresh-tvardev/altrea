@@ -26,7 +26,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { AlertTriangle, AlertCircle, Info, Zap, Eye, ExternalLink, Loader2 } from 'lucide-react';
+import { AlertTriangle, AlertCircle, Info, Zap, Eye, ExternalLink, Loader2, User } from 'lucide-react';
+import { getProfile } from '@/app/actions/profile';
+import { getElderForAccount } from '@/app/actions/settings';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { resolveAvatarUrl } from '@/lib/utils';
 import type { Alert } from '@/types/eeg';
 
 // Demo account credentials for caregiver (Garcia Care Team)
@@ -56,6 +60,8 @@ export default function CaregiverDashboard() {
     
     // Alert popup state (for localStorage-based alerts)
     const [alertPopup, setAlertPopup] = useState<Alert | null>(null);
+    const [caregiver, setCaregiver] = useState<{ name: string; avatarUrl?: string | null } | null>(null);
+    const [elderName, setElderName] = useState<string | null>(null);
     const processedAlertIds = useRef<Set<string>>(new Set());
     const [isLoggingIn, setIsLoggingIn] = useState<'simulator' | 'comparison' | null>(null);
 
@@ -72,6 +78,23 @@ export default function CaregiverDashboard() {
 
         checkProfile();
     }, [router]);
+
+    // Fetch caregiver profile and elder name for welcome message
+    useEffect(() => {
+        if (!checkingProfile && !roleLoading && !isElder) {
+            getProfile().then((profile) => {
+                if (profile?.full_name) {
+                    setCaregiver({
+                        name: profile.full_name,
+                        avatarUrl: profile.avatar_url ?? null,
+                    });
+                }
+            });
+            getElderForAccount().then((elder) => {
+                if (elder?.name) setElderName(elder.name);
+            });
+        }
+    }, [checkingProfile, roleLoading, isElder]);
 
     // Redirect to elder page if user is in elder role (from context)
     useEffect(() => {
@@ -165,8 +188,36 @@ export default function CaregiverDashboard() {
         );
     }
 
+    const displayName = caregiver?.name || '';
+    const welcomeTitle = displayName ? `Welcome back, ${displayName}!` : 'Welcome back!';
+    const welcomeSubtitle = elderName
+        ? `Monitor ${elderName}'s emotional wellness below.`
+        : "Monitor your loved one's emotional wellness below.";
+
     return (
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            {/* Welcome Message */}
+            <Card className="mb-6 border border-sky-200/60 bg-white/95 shadow-sm">
+                <CardContent className="p-6">
+                    <div className="flex items-center gap-4">
+                        <Avatar className="h-16 w-16 shrink-0">
+                            <AvatarImage src={resolveAvatarUrl(caregiver?.avatarUrl, displayName || 'User')} alt={displayName || 'Profile'} />
+                            <AvatarFallback className="bg-sky-100 text-sky-700 text-xl">
+                                {displayName ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2) : <User className="w-8 h-8" />}
+                            </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1">
+                            <h1 className="text-3xl font-bold text-foreground">
+                                {welcomeTitle}
+                            </h1>
+                            <p className="text-lg text-muted-foreground mt-1">
+                                {welcomeSubtitle}
+                            </p>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             {/* Weekly Overview & Personalized Insights - Top */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <HistoricalChart data={historicalData} />

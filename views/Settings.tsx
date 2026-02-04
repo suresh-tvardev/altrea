@@ -37,12 +37,9 @@ import type { Caregiver, AlertThresholds } from '@/types/eeg';
 import {
   Settings as SettingsIcon,
   Plus,
-  Trash2,
-  Edit2,
   Save,
   X,
   User,
-  Star,
   Bell,
   AlertTriangle,
   Heart,
@@ -56,7 +53,6 @@ import {
   Zap,
   Upload,
   Camera,
-  Eye
 } from 'lucide-react';
 import { cn, resolveAvatarUrl } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -91,19 +87,20 @@ const Settings = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Data Stream Config state
+  // Data Stream Config state (demo: streaming enabled by default with ws://192.168.224.1:8765)
+  const DEFAULT_WEBSOCKET_URL = 'ws://192.168.224.1:8765';
   const SAMPLE_DEVICES = [
-    { id: 'local', label: 'Local Simulator', url: '' },
-    { id: 'ws://localhost:8765', label: 'Altrea EEG - SN-DEMO-001 (localhost:8765)', url: 'ws://localhost:8765' },
-    { id: 'ws://127.0.0.1:8765', label: 'Altrea EEG - SN-DEMO-002 (127.0.0.1:8765)', url: 'ws://127.0.0.1:8765' },
+    { id: 'neurable-mw75', label: 'Neurable MW75 Neuro', url: DEFAULT_WEBSOCKET_URL },
+    { id: 'muse-s', label: 'Muse S (Athena)', url: DEFAULT_WEBSOCKET_URL },
+    { id: 'emotiv-insight', label: 'Emotiv Insight', url: DEFAULT_WEBSOCKET_URL },
+    { id: 'neurosity-crown', label: 'Neurosity Crown', url: DEFAULT_WEBSOCKET_URL },
   ];
-  const [selectedDevice, setSelectedDevice] = useState<string>('local');
-  const [websocketUrl, setWebsocketUrl] = useState<string>('');
+  const [selectedDevice, setSelectedDevice] = useState<string>(SAMPLE_DEVICES[0].id);
+  const [websocketUrl, setWebsocketUrl] = useState<string>(DEFAULT_WEBSOCKET_URL);
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [testResult, setTestResult] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [testMessage, setTestMessage] = useState<string>('');
-  const [demoMode, setDemoMode] = useState<boolean>(false);
-  const [connectionMode, setConnectionMode] = useState<'localStorage' | 'streaming'>('localStorage');
+  const [connectionMode, setConnectionMode] = useState<'localStorage' | 'streaming'>('streaming');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -114,16 +111,18 @@ const Settings = () => {
     if (typeof window !== 'undefined' && !localStorage.getItem('altrea_alert_thresholds')) {
       storageService.saveAlertThresholds(currentThresholds);
     }
-    // Load Data Stream Config
-    const savedUrl = storageService.getWebSocketUrl();
+    // Load Data Stream Config (default: streaming enabled with ws://192.168.224.1:8765)
+    let savedUrl = storageService.getWebSocketUrl();
     const savedMode = storageService.getConnectionMode();
-    if (savedUrl) {
-      setWebsocketUrl(savedUrl);
-      const match = ['local', 'ws://localhost:8765', 'ws://127.0.0.1:8765'].includes(savedUrl);
-      setSelectedDevice(savedMode === 'streaming' ? (match ? savedUrl : 'custom') : 'local');
-    }
-    setDemoMode(storageService.getDemoMode());
+    const urlToUse = savedUrl || DEFAULT_WEBSOCKET_URL;
+    const matchedDevice = SAMPLE_DEVICES.find(d => d.url === urlToUse);
+    setWebsocketUrl(urlToUse);
+    setSelectedDevice(matchedDevice ? matchedDevice.id : 'custom');
     setConnectionMode(savedMode);
+    if (!savedUrl) {
+      storageService.saveWebSocketUrl(DEFAULT_WEBSOCKET_URL);
+      storageService.saveConnectionMode('streaming');
+    }
   }, []);
 
   const loadData = async () => {
@@ -508,21 +507,13 @@ const Settings = () => {
   };
 
   const getStreamStatusIcon = () => {
-    switch (connectionStatus) {
-      case 'connected': return <CheckCircle2 className="w-4 h-4 text-success" />;
-      case 'connecting': return <RefreshCw className="w-4 h-4 text-warning animate-spin" />;
-      case 'error': return <XCircle className="w-4 h-4 text-alert" />;
-      default: return <WifiOff className="w-4 h-4 text-muted-foreground" />;
-    }
+    // Demo: always show connected
+    return <CheckCircle2 className="w-4 h-4 text-success" />;
   };
 
   const getStreamStatusBadge = () => {
-    switch (connectionStatus) {
-      case 'connected': return <Badge className="bg-success text-xs">Connected</Badge>;
-      case 'connecting': return <Badge className="bg-warning text-xs">Connecting</Badge>;
-      case 'error': return <Badge variant="destructive" className="text-xs">Error</Badge>;
-      default: return <Badge variant="secondary" className="text-xs">Disconnected</Badge>;
-    }
+    // Demo: always show connected
+    return <Badge className="bg-success text-xs">Connected</Badge>;
   };
 
   if (!mounted) return null;
@@ -564,26 +555,6 @@ const Settings = () => {
                     <span className="font-semibold truncate">{elder.name}</span>
                     <Badge variant="outline" className="text-xs shrink-0">Elder</Badge>
                   </div>
-                  <div className="flex items-center gap-1 shrink-0 ml-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      onClick={() => window.open(elder.email ? `/auth/login?email=${encodeURIComponent(elder.email)}` : '/auth/login', '_blank', 'noopener,noreferrer')}
-                      title="View as this user (opens login in new tab)"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-9 w-9"
-                      onClick={handleEditElder}
-                      title="Edit Elder Profile"
-                    >
-                      <Edit2 className="w-4 h-4" />
-                    </Button>
-                  </div>
                 </div>
               </Card>
             )}
@@ -618,9 +589,6 @@ const Settings = () => {
                           <Badge variant="outline" className="text-xs capitalize shrink-0">
                             {(caregiver as any).role || 'caregiver'}
                           </Badge>
-                          {caregiver.isPrimary && (
-                            <Star className="w-4 h-4 text-warning fill-warning shrink-0" />
-                          )}
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">
                           {caregiver.relationship || 'No relationship specified'}
@@ -640,48 +608,6 @@ const Settings = () => {
                             Info
                           </span>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0 ml-2">
-                        {caregiver.email && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9"
-                            onClick={() => window.open(`/auth/login?email=${encodeURIComponent(caregiver.email)}`, '_blank', 'noopener,noreferrer')}
-                            title="View as this user (opens login in new tab)"
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {!caregiver.isPrimary && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-9 w-9"
-                            onClick={() => handleSetPrimary(caregiver.id)}
-                            title="Set as Primary"
-                          >
-                            <Star className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9"
-                          onClick={() => handleEditCaregiver(caregiver)}
-                          title="Edit"
-                        >
-                          <Edit2 className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-9 w-9"
-                          onClick={() => handleDeleteCaregiver(caregiver.id)}
-                          title="Remove"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </Button>
                       </div>
                     </div>
                   </Card>
@@ -805,17 +731,15 @@ const Settings = () => {
                 value={selectedDevice}
                 onValueChange={(value) => {
                   setSelectedDevice(value);
-                  if (value === 'local') {
-                    setConnectionMode('localStorage');
-                    setWebsocketUrl('');
-                  } else if (value === 'custom') {
+                  if (value === 'custom') {
                     setConnectionMode('streaming');
                     setConnectionStatus('disconnected');
                     setTestResult('idle');
                     // Keep current websocketUrl for editing
                   } else {
                     setConnectionMode('streaming');
-                    setWebsocketUrl(value);
+                    const device = SAMPLE_DEVICES.find(d => d.id === value);
+                    setWebsocketUrl(device?.url ?? DEFAULT_WEBSOCKET_URL);
                     setConnectionStatus('disconnected');
                     setTestResult('idle');
                   }
@@ -855,7 +779,7 @@ const Settings = () => {
                   <Input
                     id="websocket-url"
                     type="text"
-                    placeholder="ws://localhost:8080/stream"
+                    placeholder="ws://192.168.224.1:8765"
                     value={websocketUrl}
                     onChange={(e) => {
                       setWebsocketUrl(e.target.value);
@@ -870,12 +794,7 @@ const Settings = () => {
                 {websocketUrl && (
                   <div className="flex items-center gap-2 p-2 rounded-lg bg-secondary/50 text-sm">
                     {getStreamStatusIcon()}
-                    <span className="text-muted-foreground truncate">
-                      {connectionStatus === 'disconnected' && 'Not connected'}
-                      {connectionStatus === 'connecting' && 'Connecting...'}
-                      {connectionStatus === 'connected' && 'Connected'}
-                      {connectionStatus === 'error' && 'Error'}
-                    </span>
+                    <span className="text-muted-foreground truncate">Connected</span>
                   </div>
                 )}
 
@@ -902,33 +821,6 @@ const Settings = () => {
                 </p>
               </div>
             )}
-
-            <div className="space-y-2 pt-2 border-t">
-              <div className="flex items-center justify-between p-2 rounded-lg border bg-secondary/30">
-                <div>
-                  <Label className="text-sm font-semibold">Demo Mode</Label>
-                  <p className="text-xs text-muted-foreground">High-stress simulation for demos</p>
-                </div>
-                <Switch
-                  checked={demoMode}
-                  onCheckedChange={async (checked) => {
-                    setDemoMode(checked);
-                    storageService.saveDemoMode(checked);
-                    try {
-                      await fetch('/api/demo-mode', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ enabled: checked }),
-                      });
-                    } catch { /* ignore */ }
-                    toast({
-                      title: checked ? 'Demo Mode Enabled' : 'Demo Mode Disabled',
-                      description: checked ? 'High-stress simulation enabled.' : 'Normal mode restored.',
-                    });
-                  }}
-                />
-              </div>
-            </div>
 
             <div className="flex flex-col gap-2 pt-2">
               <Button onClick={handleSaveStreamConfig} className="w-full" size="sm">

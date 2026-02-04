@@ -28,7 +28,6 @@ const Configuration = () => {
   const [connectionStatus, setConnectionStatus] = useState<'disconnected' | 'connecting' | 'connected' | 'error'>('disconnected');
   const [testResult, setTestResult] = useState<'idle' | 'testing' | 'success' | 'failed'>('idle');
   const [testMessage, setTestMessage] = useState<string>('');
-  const [demoMode, setDemoMode] = useState<boolean>(false);
   const [connectionMode, setConnectionMode] = useState<'localStorage' | 'streaming'>('localStorage');
   const [mounted, setMounted] = useState(false);
 
@@ -39,9 +38,6 @@ const Configuration = () => {
     if (savedUrl) {
       setWebsocketUrl(savedUrl);
     }
-    // Load demo mode setting
-    const savedDemoMode = storageService.getDemoMode();
-    setDemoMode(savedDemoMode);
     // Load connection mode setting
     const savedConnectionMode = storageService.getConnectionMode();
     setConnectionMode(savedConnectionMode);
@@ -382,76 +378,6 @@ const Configuration = () => {
                 <XCircle className="w-4 h-4 mr-2" />
                 Clear WebSocket URL
               </Button>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Demo Mode Toggle */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5" />
-              Demo Mode
-            </CardTitle>
-            <CardDescription>
-              Enable high-stress simulation for demonstrations
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg border bg-secondary/30">
-              <div className="flex-1">
-                <Label htmlFor="demo-mode" className="text-base font-semibold cursor-pointer">
-                  High-Stress Simulation
-                </Label>
-                <p className="text-sm text-muted-foreground mt-1">
-                  When enabled, the WebSocket server will generate high-stress EEG data to trigger alerts and interventions. Perfect for demonstrations.
-                </p>
-              </div>
-              <Switch
-                id="demo-mode"
-                checked={demoMode}
-                onCheckedChange={async (checked) => {
-                  setDemoMode(checked);
-                  storageService.saveDemoMode(checked);
-                  
-                  // Try to write demo_mode.json file via API route (if available)
-                  // Otherwise, user will need to restart server manually
-                  try {
-                    const response = await fetch('/api/demo-mode', {
-                      method: 'POST',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ enabled: checked }),
-                    });
-                    if (!response.ok) {
-                      console.warn('Could not write demo_mode.json via API. Please restart WebSocket server manually.');
-                    }
-                  } catch (error) {
-                    console.warn('API route not available. Please restart WebSocket server manually after toggling demo mode.');
-                  }
-                  
-                  toast({
-                    title: checked ? 'Demo Mode Enabled' : 'Demo Mode Disabled',
-                    description: checked 
-                      ? 'High-stress simulation enabled. The WebSocket server will check for demo mode every 10 seconds, or restart it to apply immediately.'
-                      : 'Normal data mode restored. Restart the WebSocket server to apply changes immediately, or wait 10 seconds.',
-                  });
-                }}
-              />
-            </div>
-
-            {demoMode && (
-              <div className="p-3 rounded-lg bg-warning/10 border border-warning/20">
-                <div className="flex items-start gap-2">
-                  <AlertCircle className="w-4 h-4 text-warning mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-sm font-medium text-warning mb-1">Demo Mode Active</p>
-                    <p className="text-xs text-muted-foreground">
-                      The WebSocket server needs to be restarted for demo mode to take effect. 
-                      High-stress data will be generated to trigger alerts and demonstrate the alert system.
-                    </p>
-                  </div>
-                </div>
-              </div>
             )}
           </CardContent>
         </Card>

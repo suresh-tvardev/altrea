@@ -19,6 +19,8 @@ const DEFAULT_THRESHOLDS: AlertThresholds = {
   calmLevel: 20,
 };
 
+const DEFAULT_WEBSOCKET_URL = 'ws://192.168.224.1:8765';
+
 // Caregivers Management
 export const storageService = {
   // Get all caregivers
@@ -144,15 +146,15 @@ export const storageService = {
     }
   },
 
-  // Get WebSocket URL
+  // Get WebSocket URL (default: ws://192.168.224.1:8765)
   getWebSocketUrl(): string | null {
     try {
-      if (typeof window === 'undefined') return null;
+      if (typeof window === 'undefined') return DEFAULT_WEBSOCKET_URL;
       const stored = localStorage.getItem(STORAGE_KEYS.WEBSOCKET_URL);
-      return stored || null;
+      return stored || DEFAULT_WEBSOCKET_URL;
     } catch (error) {
       console.error('Error reading WebSocket URL from storage:', error);
-      return null;
+      return DEFAULT_WEBSOCKET_URL;
     }
   },
 
@@ -356,13 +358,13 @@ export const storageService = {
   // Get connection mode (localStorage or streaming)
   getConnectionMode(): 'localStorage' | 'streaming' {
     try {
-      if (typeof window === 'undefined') return 'localStorage';
+      if (typeof window === 'undefined') return 'streaming';
       const stored = localStorage.getItem(STORAGE_KEYS.CONNECTION_MODE);
-      if (!stored) return 'localStorage'; // Default to localStorage
-      return stored === 'streaming' ? 'streaming' : 'localStorage';
+      if (!stored) return 'streaming'; // Default to streaming
+      return stored === 'localStorage' ? 'localStorage' : 'streaming';
     } catch (error) {
       console.error('Error reading connection mode from storage:', error);
-      return 'localStorage';
+      return 'streaming';
     }
   },
 
