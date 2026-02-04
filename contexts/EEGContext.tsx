@@ -479,7 +479,7 @@ export function EEGProvider({ children }: { children: ReactNode }) {
   const lastProcessedTrigger = useRef<number>(0);
   const lastSimulatorReadingTime = useRef<number>(0); // Track when last simulator reading was received
 
-  // Simulate data from localStorage (calm for 40s, then stress) - used regardless of connection mode for now
+  // Simulate data (calm for 30s, then stress) - used regardless of connection mode for now
   useEffect(() => {
     // Skip if using WebSocket (real connection) or not authenticated
     if (globalIsUsingWebSocket || !isConnected) {
@@ -660,8 +660,9 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       }
     }, 500); // Poll every 500ms to catch simulator data quickly
 
-    // Default simulation: calm for 40s, then stress (1 Hz)
-    // When simulator triggers, skip mock data for 8s so simulator data is visible
+    // Default simulation: calm for 30s, then stress (1 Hz)
+    // Pass explicit analysis to avoid flickering - both elder and caregiver use same data
+    const CALM_PHASE_MS = 30000;
     const SIMULATOR_PRIORITY_MS = 8000;
     simulationStartTimeRef.current = Date.now();
     mockDataIntervalRef.current = setInterval(() => {
@@ -670,9 +671,12 @@ export function EEGProvider({ children }: { children: ReactNode }) {
         return; // Simulator data takes priority - don't overwrite
       }
       const elapsedMs = Date.now() - simulationStartTimeRef.current;
-      const phase = elapsedMs < 40000 ? 'calm' : 'stress';
+      const phase = elapsedMs < CALM_PHASE_MS ? 'calm' : 'stress';
       const reading = phase === 'calm' ? generateCalmEEGReading() : generateStressEEGReading();
-      processReading(reading, false);
+      const analysis: EmotionalAnalysis = phase === 'calm'
+        ? { state: 'calm', confidence: 0.9, stressLevel: 15, anxietyLevel: 10, calmLevel: 75 }
+        : { state: 'stressed', confidence: 0.9, stressLevel: 75, anxietyLevel: 50, calmLevel: 20 };
+      processReading(reading, false, analysis);
     }, 1000);
 
     return () => {
