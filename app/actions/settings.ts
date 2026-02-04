@@ -4,6 +4,38 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { Caregiver } from '@/types/eeg';
 
+const norm = (s: string | null | undefined) => (s ?? '').trim().toLowerCase();
+
+/** Default caregiver profile image when none is set (Supabase storage). */
+const DEFAULT_CAREGIVER_AVATAR =
+    'https://ogrefwgsopzhxgfvomro.supabase.co/storage/v1/object/public/altrea/avatars/1770215957098-21ffqi.jpeg';
+
+/** Caregiver name + avatar for welcome banner. Uses same source as Settings so avatar matches what they see in Settings. */
+export async function getCaregiverWelcomeInfo(): Promise<{ name: string; avatarUrl?: string | null } | null> {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url, account_id')
+        .eq('id', user.id)
+        .single();
+
+    if (!profile?.full_name) return null;
+
+    // Use same list as Settings: getCareTeamMembers() so we resolve avatar the same way (care_team + profile fallback)
+    const members = await getCareTeamMembers();
+    const self = members.find(
+        (m) =>
+            (user.email && m.email && norm(m.email) === norm(user.email!)) ||
+            (profile.full_name && m.name && norm(m.name) === norm(profile.full_name))
+    );
+
+    const avatarUrl = profile.avatar_url ?? self?.avatarUrl ?? DEFAULT_CAREGIVER_AVATAR;
+    return { name: profile.full_name, avatarUrl };
+}
+
 export async function getElderForAccount(): Promise<{ id: string; name: string; email?: string; phone?: string; avatarUrl?: string | null } | null> {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -215,16 +247,30 @@ export async function addCareTeamMember(member: Omit<Caregiver, 'id'> & { avatar
         .single();
 
     if (error) return { error: error.message };
+
+    // Mirror elder: sync avatar to profiles when caregiver adds themselves so welcome banner loads it
+    if (avatarUrl) {
+        const { data: profileRow } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+        const isSelf =
+            (member.email && user.email && member.email.toLowerCase() === user.email.toLowerCase()) ||
+            (profileRow?.full_name && member.name && profileRow.full_name === member.name);
+        if (isSelf) {
+            await supabase.from('profiles').update({ avatar_url: avatarUrl }).eq('id', user.id);
+        }
+    }
+
     return { data };
 }
 
 export async function updateCareTeamMember(id: string, member: Partial<Caregiver> & { avatarUrl?: string | null }) {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: 'Not authenticated' };
 
     // Convert camelCase to snake_case for DB
     const { avatarUrl, alertPreferences, isPrimary, ...restMember } = member as any;
     const updateData: any = { ...restMember };
-    
+
     if (avatarUrl !== undefined) {
         updateData.avatar_url = avatarUrl;
     }
@@ -241,6 +287,19 @@ export async function updateCareTeamMember(id: string, member: Partial<Caregiver
         .eq('id', id);
 
     if (error) return { error: error.message };
+
+    // Mirror elder behavior: when caregiver updates their own entry, sync avatar to profiles so welcome banner loads it
+    if (avatarUrl !== undefined) {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single();
+        const memberEmail = (member as any).email;
+        const isCurrentUser =
+            (memberEmail && user.email && memberEmail.toLowerCase() === user.email.toLowerCase()) ||
+            (profile?.full_name && (member as any).name && profile.full_name === (member as any).name);
+        if (isCurrentUser) {
+            await supabase.from('profiles').update({ avatar_url: avatarUrl ?? null }).eq('id', user.id);
+        }
+    }
+
     return { success: true };
 }
 

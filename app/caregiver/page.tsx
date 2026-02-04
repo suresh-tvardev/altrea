@@ -26,11 +26,14 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { AlertTriangle, AlertCircle, Info, Zap, Eye, ExternalLink, Loader2, User } from 'lucide-react';
-import { getProfile } from '@/app/actions/profile';
-import { getElderForAccount } from '@/app/actions/settings';
+import { getCaregiverWelcomeInfo, getElderForAccount } from '@/app/actions/settings';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { resolveAvatarUrl } from '@/lib/utils';
 import type { Alert, Insight } from '@/types/eeg';
+
+/** Default avatar for the welcome banner when none is set (Sara Zhou / caregiver). */
+const WELCOME_BANNER_AVATAR =
+    'https://ogrefwgsopzhxgfvomro.supabase.co/storage/v1/object/public/altrea/avatars/1770215957098-21ffqi.jpeg';
 
 // Demo account credentials for caregiver (Garcia Care Team)
 const DEMO_CAREGIVER = {
@@ -59,6 +62,8 @@ export default function CaregiverDashboard() {
     const [caregiver, setCaregiver] = useState<{ name: string; avatarUrl?: string | null } | null>(null);
     const [elderName, setElderName] = useState<string | null>(null);
     const processedAlertIds = useRef<Set<string>>(new Set());
+    /** Keep first resolved banner avatar URL so we never flip back to initials after the image has loaded. */
+    const bannerAvatarUrlRef = useRef<string | null>(null);
     const [isLoggingIn, setIsLoggingIn] = useState<'simulator' | 'comparison' | null>(null);
 
     // Check if user is authenticated but missing profile
@@ -75,15 +80,12 @@ export default function CaregiverDashboard() {
         checkProfile();
     }, [router]);
 
-    // Fetch caregiver profile and elder name for welcome message
+    // Fetch caregiver name + avatar (profiles + care_team fallback) and elder name for welcome banner
     useEffect(() => {
         if (!checkingProfile && !roleLoading && !isElder) {
-            getProfile().then((profile) => {
-                if (profile?.full_name) {
-                    setCaregiver({
-                        name: profile.full_name,
-                        avatarUrl: profile.avatar_url ?? null,
-                    });
+            getCaregiverWelcomeInfo().then((info) => {
+                if (info?.name) {
+                    setCaregiver({ name: info.name, avatarUrl: info.avatarUrl ?? null });
                 }
             });
             getElderForAccount().then((elder) => {
@@ -209,14 +211,24 @@ export default function CaregiverDashboard() {
         ? `Monitor ${elderName}'s emotional wellness below.`
         : "Monitor your loved one's emotional wellness below.";
 
+    // Resolve banner avatar once and keep it stable so the image never flips back to initials
+    const resolvedBannerAvatar = resolveAvatarUrl(caregiver?.avatarUrl ?? WELCOME_BANNER_AVATAR, displayName || 'User');
+    if (resolvedBannerAvatar && !resolvedBannerAvatar.includes('ui-avatars.com')) {
+        bannerAvatarUrlRef.current = resolvedBannerAvatar;
+    }
+    const bannerAvatarSrc = bannerAvatarUrlRef.current ?? resolvedBannerAvatar;
+
     return (
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-            {/* Welcome Message */}
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* Welcome banner – same layout as elder view (name + profile image) */}
             <Card className="mb-6 border border-sky-200/60 bg-white/95 shadow-sm">
                 <CardContent className="p-6">
                     <div className="flex items-center gap-4">
                         <Avatar className="h-16 w-16 shrink-0">
-                            <AvatarImage src={resolveAvatarUrl(caregiver?.avatarUrl, displayName || 'User')} alt={displayName || 'Profile'} />
+                            <AvatarImage
+                                src={bannerAvatarSrc}
+                                alt={displayName || 'Profile'}
+                            />
                             <AvatarFallback className="bg-sky-100 text-sky-700 text-xl">
                                 {displayName ? displayName.split(' ').map((n) => n[0]).join('').slice(0, 2) : <User className="w-8 h-8" />}
                             </AvatarFallback>

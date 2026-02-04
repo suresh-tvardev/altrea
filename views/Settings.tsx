@@ -617,99 +617,6 @@ const Settings = () => {
           </CardContent>
         </Card>
 
-        {/* Alert Thresholds */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Bell className="w-5 h-5" />
-              Alert Thresholds
-            </CardTitle>
-            <CardDescription>
-              Configure when alerts should be triggered based on emotional state levels.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Stress Level Threshold */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-alert" />
-                  <Label>Stress Level Threshold</Label>
-                </div>
-                <span className="text-lg font-semibold">{thresholds.stressLevel}%</span>
-              </div>
-              <Slider
-                value={[thresholds.stressLevel]}
-                onValueChange={(value) => handleThresholdChange('stressLevel', value)}
-                min={50}
-                max={100}
-                step={5}
-              />
-              <p className="text-xs text-muted-foreground">
-                Critical alerts will be sent when stress exceeds this level.
-              </p>
-            </div>
-
-            {/* Calm Level Threshold */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Heart className="w-4 h-4 text-success" />
-                  <Label>Calm Level Threshold</Label>
-                </div>
-                <span className="text-lg font-semibold">{thresholds.calmLevel}%</span>
-              </div>
-              <Slider
-                value={[thresholds.calmLevel]}
-                onValueChange={(value) => handleThresholdChange('calmLevel', value)}
-                min={0}
-                max={50}
-                step={5}
-              />
-              <p className="text-xs text-muted-foreground">
-                Warning alerts will be sent when calm level falls below this threshold.
-              </p>
-            </div>
-
-            {/* Test Alerts */}
-            <div className="pt-4 border-t space-y-2">
-              <Label>Test Alerts</Label>
-              <p className="text-xs text-muted-foreground mb-3">
-                Send test alerts to verify your configuration.
-              </p>
-              <div className="grid grid-cols-3 gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleTestAlert('critical')}
-                  className="text-alert"
-                >
-                  <TestTube className="w-3 h-3" />
-                  Critical
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleTestAlert('warning')}
-                  className="text-warning"
-                >
-                  <TestTube className="w-3 h-3" />
-                  Warning
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleTestAlert('info')}
-                  className="text-primary"
-                >
-                  <TestTube className="w-3 h-3" />
-                  Info
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Data Stream Config */}
         <Card>
           <CardHeader>
@@ -841,6 +748,99 @@ const Settings = () => {
                   )}
                 </>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Alert Thresholds */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="w-5 h-5" />
+              Alert Thresholds
+            </CardTitle>
+            <CardDescription>
+              Configure when alerts should be triggered based on emotional state levels.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Stress Level Threshold */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-alert" />
+                  <Label>Stress Level Threshold</Label>
+                </div>
+                <span className="text-lg font-semibold">{thresholds.stressLevel}%</span>
+              </div>
+              <Slider
+                value={[thresholds.stressLevel]}
+                onValueChange={(value) => handleThresholdChange('stressLevel', value)}
+                min={50}
+                max={100}
+                step={5}
+              />
+              <p className="text-xs text-muted-foreground">
+                Critical alerts will be sent when stress exceeds this level.
+              </p>
+            </div>
+
+            {/* Calm Level Threshold */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Heart className="w-4 h-4 text-success" />
+                  <Label>Calm Level Threshold</Label>
+                </div>
+                <span className="text-lg font-semibold">{thresholds.calmLevel}%</span>
+              </div>
+              <Slider
+                value={[thresholds.calmLevel]}
+                onValueChange={(value) => handleThresholdChange('calmLevel', value)}
+                min={0}
+                max={50}
+                step={5}
+              />
+              <p className="text-xs text-muted-foreground">
+                Warning alerts will be sent when calm level falls below this threshold.
+              </p>
+            </div>
+
+            {/* Test Alerts */}
+            <div className="pt-4 border-t space-y-2">
+              <Label>Test Alerts</Label>
+              <p className="text-xs text-muted-foreground mb-3">
+                Send test alerts to verify your configuration.
+              </p>
+              <div className="grid grid-cols-3 gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleTestAlert('critical')}
+                  className="text-alert"
+                >
+                  <TestTube className="w-3 h-3" />
+                  Critical
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleTestAlert('warning')}
+                  className="text-warning"
+                >
+                  <TestTube className="w-3 h-3" />
+                  Warning
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleTestAlert('info')}
+                  className="text-primary"
+                >
+                  <TestTube className="w-3 h-3" />
+                  Info
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
