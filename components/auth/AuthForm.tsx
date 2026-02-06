@@ -16,14 +16,15 @@ import { useRole } from "@/contexts/RoleContext";
 
 interface AuthFormProps {
     type: "login" | "signup";
+    /** When set, login page is tailored for this role and redirects to the matching dashboard after login. Use separate URLs to log in as elder and caregiver in different tabs. */
+    roleIntent?: "elder" | "caregiver";
 }
 
-export function AuthForm({ type }: AuthFormProps) {
+export function AuthForm({ type, roleIntent }: AuthFormProps) {
     const searchParams = useSearchParams();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const emailFromUrl = searchParams.get("email") ?? "";
-
     useEffect(() => {
         if (emailFromUrl && type === "login") {
             setEmail(decodeURIComponent(emailFromUrl));
@@ -65,18 +66,23 @@ export function AuthForm({ type }: AuthFormProps) {
                 await refetchRole();
                 router.refresh();
 
-                // Check if setup is already complete
-                const setupStatus = await checkSetupStatus();
-                if (setupStatus.isSetupComplete && setupStatus.role) {
-                    if (setupStatus.role === 'elder') {
-                        router.replace('/elder');
-                    } else if (setupStatus.role === 'caregiver') {
-                        router.replace('/caregiver');
-                    } else {
-                        router.replace('/setup');
-                    }
+                // Redirect to role-specific dashboard when coming from elder/caregiver login page, else use setup status
+                if (roleIntent) {
+                    const target = roleIntent === "elder" ? "/elder" : "/caregiver";
+                    router.replace(target);
                 } else {
-                    router.replace("/setup");
+                    const setupStatus = await checkSetupStatus();
+                    if (setupStatus.isSetupComplete && setupStatus.role) {
+                        if (setupStatus.role === 'elder') {
+                            router.replace('/elder');
+                        } else if (setupStatus.role === 'caregiver') {
+                            router.replace('/caregiver');
+                        } else {
+                            router.replace('/setup');
+                        }
+                    } else {
+                        router.replace("/setup");
+                    }
                 }
             }
         } catch (error: any) {
@@ -95,11 +101,21 @@ export function AuthForm({ type }: AuthFormProps) {
                     </div>
                 </div>
                 <CardTitle className="text-2xl font-bold">
-                    {type === "login" ? "Welcome Back" : "Create Account"}
+                    {type === "login"
+                        ? roleIntent === "elder"
+                            ? "Elder sign in"
+                            : roleIntent === "caregiver"
+                                ? "Caregiver sign in"
+                                : "Welcome Back"
+                        : "Create Account"}
                 </CardTitle>
                 <CardDescription>
                     {type === "login"
-                        ? "Enter your credentials to access your dashboard"
+                        ? roleIntent === "elder"
+                            ? "Sign in to your elder dashboard"
+                            : roleIntent === "caregiver"
+                                ? "Sign in to your caregiver dashboard"
+                                : "Enter your credentials to access your dashboard"
                         : "Join Altrea to start monitoring emotional wellbeing"}
                 </CardDescription>
             </CardHeader>
@@ -137,12 +153,12 @@ export function AuthForm({ type }: AuthFormProps) {
                     </div>
                     {type === "login" && emailFromUrl && (
                         <p className="text-xs text-muted-foreground">
-                            Opened from Settings to view as this user. Demo accounts use password <strong>Demo123!</strong>
+                            Opened from Settings to view as this user.
                         </p>
                     )}
                 </CardContent>
                 <CardFooter className="flex flex-col space-y-4">
-                    <Button className="w-full h-12 text-lg font-semibold" disabled={loading}>
+                    <Button className="w-full h-12 text-lg font-semibold" disabled={loading} type="submit">
                         {loading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                         {type === "login" ? "Sign In" : "Sign Up"}
                     </Button>

@@ -2,9 +2,20 @@
 
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Calendar, TrendingUp, Heart, Smile } from 'lucide-react';
+import { TrendingUp, Heart, Smile, AlertTriangle, Droplets, Users, Cloud } from 'lucide-react';
 import type { EEGReading, MoodSelection } from '@/types/eeg';
 import { cn } from '@/lib/utils';
+
+const moodIconConfig: Record<Exclude<MoodSelection, null>, React.ElementType> & { null: React.ElementType } = {
+  happy: Smile,
+  calm: Droplets,
+  stressed: AlertTriangle,
+  lonely: Users,
+  sad: Cloud,
+  good: Smile,
+  bad: Heart,
+  null: Smile,
+};
 
 interface ElderPersonalStatsProps {
   historicalData: EEGReading[];
@@ -39,11 +50,7 @@ export const ElderPersonalStats = ({ historicalData, selectedMood }: ElderPerson
     return {
       calmDaysThisWeek: calmDaysCount,
       totalDays,
-      moodEmoji: selectedMood === 'happy' ? '😊' : 
-                 selectedMood === 'calm' ? '😌' :
-                 selectedMood === 'stressed' ? '😰' :
-                 selectedMood === 'lonely' ? '💙' :
-                 selectedMood === 'sad' ? '😢' : '😊',
+      MoodIcon: moodIconConfig[selectedMood ?? 'null'],
     };
   }, [historicalData, selectedMood, fallbackCalmDays]);
 
@@ -51,9 +58,24 @@ export const ElderPersonalStats = ({ historicalData, selectedMood }: ElderPerson
     <Card className="border border-sky-200/60 bg-white/95 shadow-sm">
       <CardContent className="p-6">
         <div className="space-y-6">
-          {/* Today's Mood */}
+          {/* Today's Mood - same icons as caregiver view (Smile for happy, AlertTriangle for stressed) */}
           <div className="text-center">
-            <div className="text-6xl mb-2">{stats.moodEmoji}</div>
+            <div className="flex justify-center mb-2">
+              {(() => {
+                const Icon = stats.MoodIcon;
+                return (
+                  <div className="w-20 h-20 rounded-full bg-sky-100 flex items-center justify-center">
+                    <Icon className={cn(
+                      "w-12 h-12",
+                      selectedMood === 'stressed' ? "text-warning" :
+                      selectedMood === 'sad' ? "text-violet-600" :
+                      selectedMood === 'lonely' ? "text-sky-600" :
+                      "text-emerald-600"
+                    )} />
+                  </div>
+                );
+              })()}
+            </div>
             <h2 className="text-2xl font-bold text-foreground">
               {selectedMood 
                 ? `You're feeling ${selectedMood.charAt(0).toUpperCase() + selectedMood.slice(1)} today`
