@@ -7,11 +7,12 @@ import { Phone, User, Stethoscope, AlertCircle, Star } from 'lucide-react';
 import { getCareTeamMembers } from '@/app/actions/settings';
 import type { Caregiver } from '@/types/eeg';
 import { useToast } from '@/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, resolveAvatarUrl } from '@/lib/utils';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export const ElderCircleOfCare = () => {
   const { toast } = useToast();
-  const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
+  const [caregivers, setCaregivers] = useState<(Caregiver & { avatarUrl?: string | null })[]>([]);
 
   useEffect(() => {
     loadCaregivers();
@@ -98,8 +99,14 @@ export const ElderCircleOfCare = () => {
                 Primary Caregiver
               </h3>
               <div className="p-4 bg-amber-50 rounded-xl border border-amber-200/60">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <Avatar className="h-12 w-12 shrink-0">
+                    <AvatarImage src={resolveAvatarUrl((primaryCaregiver as { avatarUrl?: string | null }).avatarUrl, primaryCaregiver.name)} alt={primaryCaregiver.name} />
+                    <AvatarFallback className="bg-amber-200 text-amber-800 text-sm">
+                      {primaryCaregiver.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
                     <div className="font-semibold text-lg text-foreground">
                       {primaryCaregiver.name}
                     </div>
@@ -139,9 +146,15 @@ export const ElderCircleOfCare = () => {
                     key={caregiver.id}
                     className="p-3 bg-sky-50 rounded-lg border border-sky-200/60"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <div className="font-semibold text-foreground">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarImage src={resolveAvatarUrl((caregiver as { avatarUrl?: string | null }).avatarUrl, caregiver.name)} alt={caregiver.name} />
+                        <AvatarFallback className="bg-sky-200 text-sky-800 text-xs">
+                          {caregiver.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-foreground truncate">
                           {caregiver.name}
                         </div>
                         <div className="text-sm text-muted-foreground">
@@ -182,9 +195,15 @@ export const ElderCircleOfCare = () => {
                     key={caregiver.id}
                     className="p-3 bg-emerald-50 rounded-lg border border-emerald-200/60"
                   >
-                    <div className="flex items-center justify-between mb-2">
-                      <div>
-                        <div className="font-semibold text-foreground">
+                    <div className="flex items-center gap-3 mb-2">
+                      <Avatar className="h-10 w-10 shrink-0">
+                        <AvatarImage src={resolveAvatarUrl((caregiver as { avatarUrl?: string | null }).avatarUrl, caregiver.name)} alt={caregiver.name} />
+                        <AvatarFallback className="bg-emerald-200 text-emerald-800 text-xs">
+                          {caregiver.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <div className="font-semibold text-foreground truncate">
                           {caregiver.name}
                         </div>
                         <div className="text-sm text-muted-foreground">

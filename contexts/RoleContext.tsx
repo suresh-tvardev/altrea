@@ -2,8 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import type { UserRole } from '@/types/eeg';
-import { fetchUserRole } from '@/app/actions/user';
-import { updateProfileRole } from '@/app/actions/profile';
+import { getDemoRole, isDemoAuthenticated } from '@/lib/demo-auth';
 
 interface RoleContextType {
   role: UserRole | null;
@@ -16,15 +15,21 @@ interface RoleContextType {
 
 const RoleContext = createContext<RoleContextType | undefined>(undefined);
 
-async function loadRole(
+function loadRole(
   setRoleState: (r: UserRole | null) => void,
   setLoading: (l: boolean) => void
 ) {
   try {
-    const fetchedRole = await fetchUserRole();
-    setRoleState(fetchedRole);
+    // Demo mode: get role from localStorage
+    if (typeof window !== 'undefined' && isDemoAuthenticated()) {
+      const demoRole = getDemoRole();
+      setRoleState(demoRole);
+    } else {
+      setRoleState(null);
+    }
   } catch (error) {
     console.error("Failed to fetch user role", error);
+    setRoleState(null);
   } finally {
     setLoading(false);
   }
@@ -36,16 +41,36 @@ export function RoleProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     loadRole(setRoleState, setLoading);
+    
+    // Listen for storage changes (login/logout in other tabs)
+    const handleStorageChange = () => {
+      loadRole(setRoleState, setLoading);
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Also poll for changes (storage event doesn't fire in same tab)
+    const interval = setInterval(() => {
+      loadRole(setRoleState, setLoading);
+    }, 1000);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      clearInterval(interval);
+    };
   }, []);
 
   const refetchRole = useCallback(async () => {
     setLoading(true);
-    await loadRole(setRoleState, setLoading);
+    loadRole(setRoleState, setLoading);
   }, []);
 
   const setRole = async (newRole: UserRole) => {
     setRoleState(newRole);
-    // Optimistically update, actual server update happens via actions in setup
+    // Store in localStorage for demo
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('altrea_demo_role', newRole);
+    }
   };
 
   const value: RoleContextType = {

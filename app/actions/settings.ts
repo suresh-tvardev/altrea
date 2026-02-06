@@ -12,66 +12,17 @@ const DEFAULT_CAREGIVER_AVATAR =
 
 /** Caregiver name + avatar for welcome banner. Uses same source as Settings so avatar matches what they see in Settings. */
 export async function getCaregiverWelcomeInfo(): Promise<{ name: string; avatarUrl?: string | null } | null> {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url, account_id')
-        .eq('id', user.id)
-        .single();
-
-    if (!profile?.full_name) return null;
-
-    // Use same list as Settings: getCareTeamMembers() so we resolve avatar the same way (care_team + profile fallback)
-    const members = await getCareTeamMembers();
-    const self = members.find(
-        (m) =>
-            (user.email && m.email && norm(m.email) === norm(user.email!)) ||
-            (profile.full_name && m.name && norm(m.name) === norm(profile.full_name))
-    );
-
-    const avatarUrl = profile.avatar_url ?? self?.avatarUrl ?? DEFAULT_CAREGIVER_AVATAR;
-    return { name: profile.full_name, avatarUrl };
+    // Demo mode: return demo caregiver info
+    return { name: 'Sara Zhou', avatarUrl: '/images/profile/sara.jpg' };
 }
 
 export async function getElderForAccount(): Promise<{ id: string; name: string; email?: string; phone?: string; avatarUrl?: string | null } | null> {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return null;
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('account_id')
-        .eq('id', user.id)
-        .single();
-
-    if (!profile?.account_id) return null;
-
-    const { data: elderProfile } = await supabase
-        .from('profiles')
-        .select('id, full_name, avatar_url')
-        .eq('account_id', profile.account_id)
-        .eq('role', 'elder')
-        .single();
-
-    if (!elderProfile?.full_name) return null;
-
-    let email: string | undefined;
-    try {
-        const admin = createAdminClient();
-        const { data: elderAuthUser } = await admin.auth.admin.getUserById(elderProfile.id);
-        email = elderAuthUser?.user?.email || undefined;
-    } catch {
-        // Admin API may fail in some envs; still return profile with name and avatar
-    }
-
+    // Demo mode: return demo elder info
     return {
-        id: elderProfile.id,
-        name: elderProfile.full_name,
-        email,
-        avatarUrl: elderProfile.avatar_url ?? null,
+        id: 'demo-elder-1',
+        name: 'Maria Garcia',
+        email: 'elder@demo.com',
+        avatarUrl: '/images/profile/maria.jpg',
     };
 }
 
@@ -97,120 +48,37 @@ export async function updateElderProfile(id: string, updates: { name?: string; a
 }
 
 export async function getCareTeamMembers() {
-    const supabase = await createClient();
-
-    // We get the account_id and role from the user's profile first
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return [];
-
-    const { data: profile } = await supabase
-        .from('profiles')
-        .select('account_id, role')
-        .eq('id', user.id)
-        .single();
-
-    if (!profile?.account_id) return [];
-
-    const currentUserRole = profile.role;
-    const contacts: (Caregiver & { avatarUrl?: string | null })[] = [];
-
-    // Get caregiver profiles (with avatar_url) for this account to match by email
-    const { data: caregiverProfiles } = await supabase
-        .from('profiles')
-        .select('full_name, avatar_url')
-        .eq('account_id', profile.account_id)
-        .eq('role', 'caregiver');
-
-    const getAvatarForCaregiver = (name: string) => {
-        const match = caregiverProfiles?.find(p =>
-            p.full_name && name && p.full_name === name
-        );
-        return match?.avatar_url || null;
-    };
-
-    // Get care team members from care_team_members table
-    // Filter based on role:
-    // - Elder sees: caregivers (role='caregiver') - these are their contacts
-    // - Caregiver sees: other caregivers (role='caregiver'), NOT elder (role='elder')
-    // Both should see caregivers, so we filter for role='caregiver'
-    const { data: teamMembers, error } = await supabase
-        .from('care_team_members')
-        .select('*')
-        .eq('account_id', profile.account_id)
-        .eq('role', 'caregiver') // Both elder and caregiver should see caregivers (not elder)
-        .order('is_primary', { ascending: false }) // Primary caregivers first
-        .order('created_at', { ascending: true });
-
-    if (error) {
-        console.error('Error fetching care team members:', error);
-    } else if (teamMembers) {
-        // Convert care_team_members to Caregiver format
-        const convertedMembers = teamMembers.map(member => ({
-            id: member.id,
-            name: member.name,
-            email: member.email,
-            phone: member.phone || '',
-            relationship: member.relationship || 'Caregiver',
-            isPrimary: member.is_primary || false,
-            alertPreferences: member.alert_preferences || {
+    // Demo mode: return demo caregiver and primary physician
+    return [
+        {
+            id: 'demo-caregiver-1',
+            name: 'Sara Zhou',
+            email: 'caregiver@demo.com',
+            phone: '',
+            relationship: 'Primary Caregiver',
+            isPrimary: true,
+            alertPreferences: {
                 critical: true,
                 warning: true,
                 info: false,
             },
-            // Use avatar_url from DB if available, otherwise try to match from profiles
-            avatarUrl: member.avatar_url || getAvatarForCaregiver(member.name),
-        }));
-        contacts.push(...convertedMembers);
-    }
-
-    // Also check profiles for partner caregiver (in case they weren't added to care_team_members)
-    // This ensures we always show the partner caregiver to elder users
-    if (currentUserRole === 'elder') {
-        const { data: partnerProfiles } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url')
-            .eq('account_id', profile.account_id)
-            .eq('role', 'caregiver')
-            .neq('id', user.id);
-
-        if (partnerProfiles && partnerProfiles.length > 0) {
-            for (const partner of partnerProfiles) {
-                // Check if partner is already in contacts (from care_team_members)
-                const existsInContacts = contacts.some(c => {
-                    // Match by email or by checking if it's a UUID (profile id)
-                    return c.email && partner.id && (
-                        c.id === partner.id || 
-                        c.email.includes(partner.id.substring(0, 8))
-                    );
-                });
-
-                if (!existsInContacts) {
-                    // Partner not in care_team_members, add them from profile
-                    // Try to find matching member by name
-                    const matchingMember = teamMembers?.find(m => 
-                        m.name === partner.full_name
-                    );
-
-                    contacts.push({
-                        id: partner.id,
-                        name: partner.full_name || 'Caregiver',
-                        email: matchingMember?.email || '',
-                        phone: matchingMember?.phone || '',
-                        relationship: matchingMember?.relationship || 'Primary Caregiver',
-                        isPrimary: true,
-                        alertPreferences: matchingMember?.alert_preferences || {
-                            critical: true,
-                            warning: true,
-                            info: false,
-                        },
-                        avatarUrl: (partner as { avatar_url?: string })?.avatar_url || null,
-                    });
-                }
-            }
-        }
-    }
-
-    return contacts;
+            avatarUrl: '/images/profile/sara.jpg',
+        },
+        {
+            id: 'demo-physician-1',
+            name: 'Dr. Meredith Grey',
+            email: 'meredith@gmail.com',
+            phone: '',
+            relationship: 'Primary Physician',
+            isPrimary: false,
+            alertPreferences: {
+                critical: true,
+                warning: true,
+                info: false,
+            },
+            avatarUrl: '/images/profile/doctor.jpg',
+        },
+    ] as (Caregiver & { avatarUrl?: string | null })[];
 }
 
 export async function addCareTeamMember(member: Omit<Caregiver, 'id'> & { avatarUrl?: string | null }) {

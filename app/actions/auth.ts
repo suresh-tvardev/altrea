@@ -1,23 +1,17 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
+import { demoLogin, demoSignup, demoLogout } from '@/lib/demo-auth';
 
 export async function login(formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const supabase = await createClient();
+    const roleIntent = formData.get('roleIntent') as 'elder' | 'caregiver' | null;
 
-    const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-    });
-
-    if (error) {
-        return { error: error.message };
+    const result = demoLogin(email, password, roleIntent || undefined);
+    
+    if (!result.success) {
+        return { error: result.error || 'Login failed' };
     }
-
-    // Auth session is managed via cookies set by supabase.auth.signInWithPassword
-    // middleware will handle the session refresh
 
     return { success: true };
 }
@@ -25,29 +19,22 @@ export async function login(formData: FormData) {
 export async function signup(formData: FormData) {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
-    const origin = formData.get('origin') as string;
-    const supabase = await createClient();
+    const role = formData.get('role') as 'elder' | 'caregiver' | null;
 
-    const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-            emailRedirectTo: `${origin}/auth/callback`,
-        },
-    });
+    if (!role) {
+        return { error: 'Role is required' };
+    }
 
-    if (error) {
-        return { error: error.message };
+    const result = demoSignup(email, password, role);
+    
+    if (!result.success) {
+        return { error: result.error || 'Signup failed' };
     }
 
     return { success: true };
 }
 
 export async function signOut() {
-    const supabase = await createClient();
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-        return { error: error.message };
-    }
+    demoLogout();
     return { success: true };
 }

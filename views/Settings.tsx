@@ -53,6 +53,7 @@ import {
   Zap,
   Upload,
   Camera,
+  Stethoscope,
 } from 'lucide-react';
 import { cn, resolveAvatarUrl } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -61,6 +62,11 @@ const Settings = () => {
   const { toast } = useToast();
   const [caregivers, setCaregivers] = useState<(Caregiver & { avatarUrl?: string | null })[]>([]);
   const [elder, setElder] = useState<{ id: string; name: string; email?: string; phone?: string; avatarUrl?: string | null } | null>(null);
+  const [primaryPhysician] = useState<{ name: string; email: string; phone?: string; avatarUrl?: string }>({
+    name: 'Dr. Meredith Grey',
+    email: 'meredith@gmail.com',
+    avatarUrl: '/images/profile/doctor.jpg',
+  });
   const [isEditingElder, setIsEditingElder] = useState(false);
   const [thresholds, setThresholds] = useState<AlertThresholds>({
     stressLevel: 80,
@@ -559,16 +565,46 @@ const Settings = () => {
               </Card>
             )}
 
+            {/* Primary Physician */}
+            <Card className="p-4 bg-emerald-50/50 border-emerald-200">
+              <div className="flex items-start gap-3">
+                <Avatar className="h-12 w-12 shrink-0">
+                  <AvatarImage src={resolveAvatarUrl(primaryPhysician.avatarUrl, primaryPhysician.name)} alt={primaryPhysician.name} />
+                  <AvatarFallback className="bg-emerald-200 text-emerald-800 text-sm">
+                    {primaryPhysician.name.split(' ').map(n => n[0]).join('').slice(0, 2)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0 overflow-hidden">
+                  <div className="flex items-center gap-2 mb-1 flex-wrap">
+                    <span className="font-semibold truncate">{primaryPhysician.name}</span>
+                    <Badge variant="outline" className="text-xs shrink-0 bg-emerald-100 text-emerald-800 border-emerald-300">
+                      Primary Physician
+                    </Badge>
+                  </div>
+                  <div className="text-xs text-muted-foreground space-y-1 mt-2">
+                    <p>{primaryPhysician.email}</p>
+                    {primaryPhysician.phone && <p>{primaryPhysician.phone}</p>}
+                  </div>
+                </div>
+              </div>
+            </Card>
+
             {/* Caregivers List */}
             <div className="space-y-2">
-              {caregivers.length === 0 && !elder ? (
+              {caregivers.filter(c => 
+                !c.relationship.toLowerCase().includes('physician') && 
+                !c.relationship.toLowerCase().includes('doctor')
+              ).length === 0 && !elder ? (
                 <div className="text-center py-8 text-muted-foreground">
                   <User className="w-10 h-10 mx-auto mb-2 opacity-50" />
                   <p>No persons configured</p>
                   <p className="text-sm mt-1">Add caregivers or family members to receive alerts</p>
                 </div>
               ) : (
-                caregivers.map((caregiver) => (
+                caregivers.filter(c => 
+                  !c.relationship.toLowerCase().includes('physician') && 
+                  !c.relationship.toLowerCase().includes('doctor')
+                ).map((caregiver) => (
                   <Card
                     key={caregiver.id}
                     className={cn(

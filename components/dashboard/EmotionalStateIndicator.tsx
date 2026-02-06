@@ -76,11 +76,11 @@ export const EmotionalStateIndicator = ({ analysis }: EmotionalStateIndicatorPro
   const Icon = config.icon;
 
   return (
-    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in">
+    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in w-full">
       <h3 className="text-lg font-semibold text-foreground mb-4">Current Emotional State</h3>
 
       <div className={cn(
-        "flex flex-col sm:flex-row items-center sm:items-start gap-4 p-5 rounded-xl transition-all duration-500 text-center sm:text-left",
+        "flex flex-col sm:flex-row items-center sm:items-start gap-4 p-5 rounded-xl transition-all duration-500 text-center sm:text-left w-full",
         config.bgColor
       )}>
         <div className={cn(
@@ -90,8 +90,8 @@ export const EmotionalStateIndicator = ({ analysis }: EmotionalStateIndicatorPro
           <Icon className={cn("w-8 h-8", config.color)} />
         </div>
 
-        <div className="flex-1">
-          <span className={cn("text-2xl font-bold", config.color)}>
+        <div className="flex-1 min-w-0">
+          <span className={cn("text-2xl font-bold block", config.color)}>
             {config.label}
           </span>
           <p className="text-muted-foreground mt-1">{config.description}</p>

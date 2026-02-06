@@ -44,7 +44,9 @@ export function AuthForm({ type, roleIntent }: AuthFormProps) {
             formData.append("password", password);
 
             if (type === "signup") {
-                formData.append("origin", window.location.origin);
+                // Ensure roleIntent is set (default to elder if not provided)
+                const role = roleIntent || "elder";
+                formData.append("role", role);
                 const result = await signup(formData);
 
                 if (result.error) throw new Error(result.error);
@@ -52,11 +54,17 @@ export function AuthForm({ type, roleIntent }: AuthFormProps) {
 
                 // Refetch role so Header/topbar shows icons immediately
                 await refetchRole();
+                
+                // Small delay to ensure localStorage is synced
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
                 router.refresh();
 
-                // Redirect to setup after signup
-                router.replace("/setup");
+                // Redirect to role-specific dashboard based on selected role
+                const target = role === "elder" ? "/elder" : "/caregiver";
+                router.replace(target);
             } else {
+                formData.append("roleIntent", roleIntent || "");
                 const result = await login(formData);
 
                 if (result.error) throw new Error(result.error);
@@ -64,26 +72,16 @@ export function AuthForm({ type, roleIntent }: AuthFormProps) {
 
                 // Refetch role so Header/topbar shows icons immediately (avoids missing icons until hard refresh)
                 await refetchRole();
+                
+                // Small delay to ensure localStorage is synced
+                await new Promise(resolve => setTimeout(resolve, 100));
+                
                 router.refresh();
 
-                // Redirect to role-specific dashboard when coming from elder/caregiver login page, else use setup status
-                if (roleIntent) {
-                    const target = roleIntent === "elder" ? "/elder" : "/caregiver";
-                    router.replace(target);
-                } else {
-                    const setupStatus = await checkSetupStatus();
-                    if (setupStatus.isSetupComplete && setupStatus.role) {
-                        if (setupStatus.role === 'elder') {
-                            router.replace('/elder');
-                        } else if (setupStatus.role === 'caregiver') {
-                            router.replace('/caregiver');
-                        } else {
-                            router.replace('/setup');
-                        }
-                    } else {
-                        router.replace("/setup");
-                    }
-                }
+                // Redirect to role-specific dashboard based on selected role
+                // roleIntent is guaranteed to be set from the login page tabs
+                const target = roleIntent === "elder" ? "/elder" : "/caregiver";
+                router.replace(target);
             }
         } catch (error: any) {
             toast.error(error.message || "Something went wrong");

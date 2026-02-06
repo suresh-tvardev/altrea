@@ -17,6 +17,10 @@ export function resolveAvatarUrl(
   if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
     return avatarUrl;
   }
+  // Local public folder path (starts with /)
+  if (avatarUrl.startsWith('/')) {
+    return avatarUrl;
+  }
   // Storage path - construct full Supabase public URL
   const base = typeof process !== 'undefined' && process.env?.NEXT_PUBLIC_SUPABASE_URL
     ? process.env.NEXT_PUBLIC_SUPABASE_URL

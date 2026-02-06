@@ -3,7 +3,7 @@
 import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, Heart, Smile, AlertTriangle, Droplets, Users, Cloud } from 'lucide-react';
-import type { EEGReading, MoodSelection } from '@/types/eeg';
+import type { EEGReading, MoodSelection, EmotionalAnalysis } from '@/types/eeg';
 import { cn } from '@/lib/utils';
 
 const moodIconConfig: Record<Exclude<MoodSelection, null>, React.ElementType> & { null: React.ElementType } = {
@@ -20,9 +20,10 @@ const moodIconConfig: Record<Exclude<MoodSelection, null>, React.ElementType> & 
 interface ElderPersonalStatsProps {
   historicalData: EEGReading[];
   selectedMood: MoodSelection;
+  analysis?: EmotionalAnalysis;
 }
 
-export const ElderPersonalStats = ({ historicalData, selectedMood }: ElderPersonalStatsProps) => {
+export const ElderPersonalStats = ({ historicalData, selectedMood, analysis }: ElderPersonalStatsProps) => {
   const [fallbackCalmDays] = useState(() => Math.floor(3 + Math.random() * 3)); // 3-5 when no data
 
   const stats = useMemo(() => {
@@ -55,29 +56,45 @@ export const ElderPersonalStats = ({ historicalData, selectedMood }: ElderPerson
   }, [historicalData, selectedMood, fallbackCalmDays]);
 
   return (
-    <Card className="border border-sky-200/60 bg-white/95 shadow-sm">
-      <CardContent className="p-6">
+    <Card className="border border-sky-200/60 bg-white/95 shadow-sm w-full">
+      <CardContent className="p-6 w-full">
         <div className="space-y-6">
-          {/* Today's Mood - same icons as caregiver view (Smile for happy, AlertTriangle for stressed) */}
+          {/* Today's Mood - same icons as caregiver view (Smile for happy/calm, AlertTriangle for stressed) */}
           <div className="text-center">
             <div className="flex justify-center mb-2">
               {(() => {
-                const Icon = stats.MoodIcon;
+                // Use real-time emotional state if available, otherwise use selected mood
+                const displayState = analysis?.state || selectedMood;
+                let Icon: React.ElementType;
+                let colorClass: string;
+                
+                // Map emotional states to icons (matching caregiver view)
+                if (displayState === 'stressed' || displayState === 'anxious' || displayState === 'fear') {
+                  Icon = AlertTriangle;
+                  colorClass = "text-warning";
+                } else if (displayState === 'sad') {
+                  Icon = moodIconConfig[selectedMood || 'null'];
+                  colorClass = "text-violet-600";
+                } else if (displayState === 'lonely') {
+                  Icon = moodIconConfig[selectedMood || 'null'];
+                  colorClass = "text-sky-600";
+                } else {
+                  // Happy, calm, relaxed, neutral - use Smile (matching caregiver view)
+                  Icon = Smile;
+                  colorClass = "text-emerald-600";
+                }
+                
                 return (
                   <div className="w-20 h-20 rounded-full bg-sky-100 flex items-center justify-center">
-                    <Icon className={cn(
-                      "w-12 h-12",
-                      selectedMood === 'stressed' ? "text-warning" :
-                      selectedMood === 'sad' ? "text-violet-600" :
-                      selectedMood === 'lonely' ? "text-sky-600" :
-                      "text-emerald-600"
-                    )} />
+                    <Icon className={cn("w-12 h-12", colorClass)} />
                   </div>
                 );
               })()}
             </div>
             <h2 className="text-2xl font-bold text-foreground">
-              {selectedMood 
+              {analysis?.state 
+                ? `You're feeling ${analysis.state.charAt(0).toUpperCase() + analysis.state.slice(1)}`
+                : selectedMood 
                 ? `You're feeling ${selectedMood.charAt(0).toUpperCase() + selectedMood.slice(1)} today`
                 : "How are you feeling today?"}
             </h2>

@@ -121,9 +121,20 @@ export default function SimulatorPage() {
   const [autoPlayInterval, setAutoPlayInterval] = useState<NodeJS.Timeout | null>(null);
   const [previewAnalysis, setPreviewAnalysis] = useState<EmotionalAnalysis | null>(null);
 
-  // Check if user is authenticated
-  if (!roleLoading && !role) {
-    router.replace('/auth/login');
+  // Check if user is authenticated - redirect in useEffect to avoid render-time state updates
+  useEffect(() => {
+    if (!roleLoading && !role) {
+      router.replace('/auth/login');
+    }
+  }, [roleLoading, role, router]);
+
+  // Show loading state while checking authentication
+  if (roleLoading) {
+    return null;
+  }
+
+  // Don't render if not authenticated (redirect is handled in useEffect)
+  if (!role) {
     return null;
   }
 

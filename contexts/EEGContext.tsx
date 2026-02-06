@@ -660,24 +660,8 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       }
     }, 500); // Poll every 500ms to catch simulator data quickly
 
-    // Default simulation: calm for 30s, then stress (1 Hz)
-    // Pass explicit analysis to avoid flickering - both elder and caregiver use same data
-    const CALM_PHASE_MS = 30000;
-    const SIMULATOR_PRIORITY_MS = 8000;
-    simulationStartTimeRef.current = Date.now();
-    mockDataIntervalRef.current = setInterval(() => {
-      const sinceSimulator = Date.now() - lastSimulatorReadingTime.current;
-      if (sinceSimulator < SIMULATOR_PRIORITY_MS) {
-        return; // Simulator data takes priority - don't overwrite
-      }
-      const elapsedMs = Date.now() - simulationStartTimeRef.current;
-      const phase = elapsedMs < CALM_PHASE_MS ? 'calm' : 'stress';
-      const reading = phase === 'calm' ? generateCalmEEGReading() : generateStressEEGReading();
-      const analysis: EmotionalAnalysis = phase === 'calm'
-        ? { state: 'calm', confidence: 0.9, stressLevel: 15, anxietyLevel: 10, calmLevel: 75 }
-        : { state: 'stressed', confidence: 0.9, stressLevel: 75, anxietyLevel: 50, calmLevel: 20 };
-      processReading(reading, false, analysis);
-    }, 1000);
+    // Auto-timer removed: Only use localStorage updates from simulator page
+    // No automatic mock data generation - elder/caregiver views will only react to simulator triggers
 
     return () => {
       clearTimeout(initialLoadTimeout);

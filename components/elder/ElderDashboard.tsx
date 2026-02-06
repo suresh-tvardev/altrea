@@ -6,6 +6,7 @@ import { ElderEEGView } from './ElderEEGView';
 import { ElderInterventions } from './ElderInterventions';
 import { ElderCircleOfCare } from './ElderCircleOfCare';
 import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
+import { EmotionalStateIndicator } from '@/components/dashboard/EmotionalStateIndicator';
 import type { MoodSelection, Insight } from '@/types/eeg';
 import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -126,11 +127,17 @@ export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: Elde
           </CardContent>
         </Card>
 
+        {/* Current Emotional State - Top (Full Width) */}
+        <div className="mb-6 w-full">
+          <EmotionalStateIndicator analysis={analysis} />
+        </div>
+
         {/* You're feeling [mood] today & Personalized Insights - Side by Side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <ElderPersonalStats
             historicalData={readings}
             selectedMood={selectedMood}
+            analysis={analysis}
           />
           <InsightsPanel insights={elderInsights} />
         </div>

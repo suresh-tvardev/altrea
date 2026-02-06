@@ -7,7 +7,6 @@ import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
 import { CaregiversPanel } from '@/components/dashboard/CaregiversPanel';
 import { HistoricalChart } from '@/components/dashboard/HistoricalChart';
 import { InsightsPanel } from '@/components/dashboard/InsightsPanel';
-import { QuickStats } from '@/components/dashboard/QuickStats';
 import { InterventionDialog } from '@/components/dashboard/InterventionDialog';
 import { useEEGSimulation } from '@/hooks/useEEGSimulation';
 import { useRole } from '@/contexts/RoleContext';
@@ -66,31 +65,16 @@ export default function CaregiverDashboard() {
     const bannerAvatarUrlRef = useRef<string | null>(null);
     const [isLoggingIn, setIsLoggingIn] = useState<'simulator' | 'comparison' | null>(null);
 
-    // Check if user is authenticated but missing profile
+    // Demo mode: skip profile check
     useEffect(() => {
-        const checkProfile = async () => {
-            const needsSetup = await isAuthenticatedButMissingProfile();
-            if (needsSetup) {
-                router.replace('/setup');
-                return;
-            }
-            setCheckingProfile(false);
-        };
-
-        checkProfile();
+        setCheckingProfile(false);
     }, [router]);
 
-    // Fetch caregiver name + avatar (profiles + care_team fallback) and elder name for welcome banner
+    // Demo mode: use default names
     useEffect(() => {
         if (!checkingProfile && !roleLoading && !isElder) {
-            getCaregiverWelcomeInfo().then((info) => {
-                if (info?.name) {
-                    setCaregiver({ name: info.name, avatarUrl: info.avatarUrl ?? null });
-                }
-            });
-            getElderForAccount().then((elder) => {
-                if (elder?.name) setElderName(elder.name);
-            });
+            setCaregiver({ name: 'Sara Zhou', avatarUrl: null });
+            setElderName('Maria Garcia');
         }
     }, [checkingProfile, roleLoading, isElder]);
 
@@ -245,26 +229,24 @@ export default function CaregiverDashboard() {
                 </CardContent>
             </Card>
 
-            {/* Weekly Overview & Personalized Insights - Top */}
+            {/* Current Emotional State - Top (Full Width) */}
+            <div className="mb-6 w-full">
+                <EmotionalStateIndicator analysis={analysis} />
+            </div>
+
+            {/* Weekly Overview & Personalized Insights */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
                 <HistoricalChart data={historicalData} />
                 <InsightsPanel insights={caregiverInsights} />
             </div>
 
-            {/* Quick Stats */}
-            <section className="mb-6">
-                <QuickStats data={historicalData} />
-            </section>
-
-            {/* Main Grid */}
+            {/* Main Grid - Alerts & Caregivers */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Real-time Monitoring */}
-                <div className="lg:col-span-2 space-y-6">
-                    <EmotionalStateIndicator analysis={analysis} />
-                </div>
-
+                {/* Left Column - Empty space for future content */}
+                <div className="lg:col-span-2"></div>
+                
                 {/* Right Column - Alerts, Caregivers */}
-                <div className="space-y-6">
+                <div className="space-y-6 w-full">
                     <AlertsPanel alerts={alerts} onAcknowledge={acknowledgeAlert} />
                     <CaregiversPanel />
                 </div>
