@@ -115,28 +115,11 @@ const STRESS_SCENARIOS: StressScenario[] = [
 export default function SimulatorPage() {
   const router = useRouter();
   const { injectReading, analysis, alerts } = useEEGSimulation();
-  const { role, loading: roleLoading } = useRole();
+  const { role } = useRole(); // Optional: used for badge display only
   const [stressLevel, setStressLevel] = useState(50);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false);
   const [autoPlayInterval, setAutoPlayInterval] = useState<NodeJS.Timeout | null>(null);
   const [previewAnalysis, setPreviewAnalysis] = useState<EmotionalAnalysis | null>(null);
-
-  // Check if user is authenticated - redirect in useEffect to avoid render-time state updates
-  useEffect(() => {
-    if (!roleLoading && !role) {
-      router.replace('/auth/login');
-    }
-  }, [roleLoading, role, router]);
-
-  // Show loading state while checking authentication
-  if (roleLoading) {
-    return null;
-  }
-
-  // Don't render if not authenticated (redirect is handled in useEffect)
-  if (!role) {
-    return null;
-  }
 
   // Update preview analysis when slider changes
   useEffect(() => {
@@ -334,7 +317,7 @@ export default function SimulatorPage() {
             </p>
           </div>
           <Badge variant="outline" className="text-lg px-4 py-2">
-            {role === 'elder' ? 'Elder View' : 'Caregiver View'}
+            {role === 'elder' ? 'Elder View' : role === 'caregiver' ? 'Caregiver View' : 'Simulator View'}
           </Badge>
         </div>
 

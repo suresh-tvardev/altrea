@@ -229,22 +229,25 @@ export default function CaregiverDashboard() {
                 </CardContent>
             </Card>
 
-            {/* Current Emotional State - Top (Full Width) */}
-            <div className="mb-6 w-full">
-                <EmotionalStateIndicator analysis={analysis} />
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                {/* Left Column - Current Emotional State & Weekly Overview */}
+                <div className="lg:col-span-2 space-y-6">
+                    <EmotionalStateIndicator analysis={analysis} />
+                    <HistoricalChart data={historicalData} />
+                </div>
+
+                {/* Right Column - Personalized Insights */}
+                <div className="space-y-6 w-full">
+                    <InsightsPanel insights={caregiverInsights} />
+                </div>
             </div>
 
-            {/* Weekly Overview & Personalized Insights */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                <HistoricalChart data={historicalData} />
-                <InsightsPanel insights={caregiverInsights} />
-            </div>
-
-            {/* Main Grid - Alerts & Caregivers */}
+            {/* Bottom Section - Alerts & Caregivers */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Empty space for future content */}
+                {/* Left Column - Empty */}
                 <div className="lg:col-span-2"></div>
-                
+
                 {/* Right Column - Alerts, Caregivers */}
                 <div className="space-y-6 w-full">
                     <AlertsPanel alerts={alerts} onAcknowledge={acknowledgeAlert} />

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { SelfSelectMood } from '@/components/elder/SelfSelectMood';
 import { ElderDashboard } from '@/components/elder/ElderDashboard';
 import { storageService } from '@/services/storage';
+import { getElderForAccount } from '@/app/actions/settings';
 import type { MoodSelection } from '@/types/eeg';
 
 export default function ElderPage() {
@@ -15,10 +16,23 @@ export default function ElderPage() {
     // Check if mood was already selected today
     const todayMood = storageService.getElderMoodSelection();
     setMoodSelected(todayMood);
-    setIsLoading(false);
 
-    // Demo mode: use default elder name
-    setElder({ name: 'Maria Garcia', avatarUrl: null });
+    // Fetch elder data including avatar
+    const loadElderData = async () => {
+      const elderData = await getElderForAccount();
+      if (elderData) {
+        setElder({
+          name: elderData.name,
+          avatarUrl: elderData.avatarUrl,
+        });
+      } else {
+        // Fallback if no data
+        setElder({ name: 'Maria Garcia', avatarUrl: '/images/profile/maria.jpg' });
+      }
+      setIsLoading(false);
+    };
+
+    loadElderData();
   }, []);
 
   const handleMoodSelected = (mood: MoodSelection) => {

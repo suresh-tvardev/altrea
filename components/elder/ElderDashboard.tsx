@@ -127,11 +127,6 @@ export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: Elde
           </CardContent>
         </Card>
 
-        {/* Current Emotional State - Top (Full Width) */}
-        <div className="mb-6 w-full">
-          <EmotionalStateIndicator analysis={analysis} />
-        </div>
-
         {/* You're feeling [mood] today & Personalized Insights - Side by Side */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           <ElderPersonalStats
@@ -142,21 +137,15 @@ export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: Elde
           <InsightsPanel insights={elderInsights} />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left Column - Main Content */}
+        {/* Current Emotional State & Activities for You - Combined */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          {/* Left Column - Current Emotional State & Activities */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Activities for You */}
+            <EmotionalStateIndicator analysis={analysis} />
             <ElderInterventions
               analysis={analysis}
               selectedMood={selectedMood}
               stressCategory={stableStressCategory}
-            />
-
-            {/* Simplified EEG View */}
-            <ElderEEGView
-              readings={readings}
-              isConnected={isConnected}
             />
           </div>
 
@@ -164,6 +153,14 @@ export const ElderDashboard = ({ selectedMood, elderName, elderAvatarUrl }: Elde
           <div className="space-y-6">
             <ElderCircleOfCare />
           </div>
+        </div>
+
+        {/* Simplified EEG View */}
+        <div className="mb-6">
+          <ElderEEGView
+            readings={readings}
+            isConnected={isConnected}
+          />
         </div>
       </div>
     </div>
