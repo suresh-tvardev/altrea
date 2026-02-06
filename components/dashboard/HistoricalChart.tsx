@@ -8,13 +8,13 @@ interface HistoricalChartProps {
 
 export const HistoricalChart = ({ data }: HistoricalChartProps) => {
   return (
-    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in">
-      <div className="flex items-center gap-2 mb-4">
+    <div className="h-full flex flex-col bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in">
+      <div className="flex items-center gap-2 mb-4 flex-shrink-0">
         <Calendar className="w-5 h-5 text-primary" />
         <h3 className="text-lg font-semibold text-foreground">Weekly Overview</h3>
       </div>
 
-      <div className="h-64">
+      <div className="flex-1 min-h-64">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data}>
             <defs>
@@ -81,7 +81,7 @@ export const HistoricalChart = ({ data }: HistoricalChartProps) => {
         </ResponsiveContainer>
       </div>
 
-      <div className="flex justify-center gap-6 mt-4">
+      <div className="flex justify-center gap-6 mt-4 flex-shrink-0">
         <Legend color="bg-chart-relaxed" label="Calm" />
         <Legend color="bg-chart-stress" label="Stress" />
         <Legend color="bg-chart-anxiety" label="Anxiety" />

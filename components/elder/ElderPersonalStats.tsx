@@ -27,7 +27,7 @@ export const ElderPersonalStats = ({ historicalData, selectedMood, analysis }: E
   const [fallbackCalmDays] = useState(() => Math.floor(3 + Math.random() * 3)); // 3-5 when no data
 
   const stats = useMemo(() => {
-    // Calculate calm days this week
+    // Calculate calm days and stressed days this week
     const now = new Date();
     const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     
@@ -37,23 +37,32 @@ export const ElderPersonalStats = ({ historicalData, selectedMood, analysis }: E
 
     // Count days with calm readings (simplified - using calm level > 50)
     const calmDays = new Set<string>();
+    const stressedDays = new Set<string>();
     recentData.forEach(reading => {
-      // Simple heuristic: if stress is low, consider it a calm day
       const date = new Date(reading.timestamp).toDateString();
+      // Calm: low beta, sufficient alpha
       if (reading.alpha > 10 && reading.beta < 20) {
         calmDays.add(date);
+      }
+      // Stressed: high beta or low alpha (stress indicators)
+      if (reading.beta > 25 || (reading.alpha < 10 && reading.beta > 15)) {
+        stressedDays.add(date);
       }
     });
 
     const calmDaysCount = calmDays.size || fallbackCalmDays; // Use random fallback when 0
+    const stressedDaysCount = stressedDays.size || 0;
     const totalDays = 7;
     
     return {
       calmDaysThisWeek: calmDaysCount,
+      stressedDaysThisWeek: stressedDaysCount,
       totalDays,
       MoodIcon: moodIconConfig[selectedMood ?? 'null'],
     };
   }, [historicalData, selectedMood, fallbackCalmDays]);
+
+  const isStressed = analysis?.state === 'stressed' || analysis?.state === 'anxious' || analysis?.state === 'fear' || selectedMood === 'stressed';
 
   return (
     <Card className="border border-sky-200/60 bg-white/95 shadow-sm w-full">
@@ -102,29 +111,46 @@ export const ElderPersonalStats = ({ historicalData, selectedMood, analysis }: E
 
           {/* Weekly Stats */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-sky-200/60">
-            <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200/60">
-              <div className="flex items-center justify-center gap-2 mb-2">
-                <Smile className="w-6 h-6 text-emerald-600" />
-                <span className="text-lg font-semibold text-emerald-800">Calm Days</span>
+            {/* Left box: Calm Days (when calm) or Stressed Days (when stressed) */}
+            {isStressed ? (
+              <div className="text-center p-4 bg-yellow-50 rounded-xl border border-yellow-200/60">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <AlertTriangle className="w-6 h-6 text-yellow-600" />
+                  <span className="text-lg font-semibold text-yellow-800">Stressed Days</span>
+                </div>
+                <div className="text-4xl font-bold text-yellow-700">
+                  {stats.stressedDaysThisWeek}
+                </div>
+                <div className="text-sm text-yellow-600 mt-1">
+                  out of {stats.totalDays} days this week
+                </div>
               </div>
-              <div className="text-4xl font-bold text-emerald-700">
-                {stats.calmDaysThisWeek}
+            ) : (
+              <div className="text-center p-4 bg-emerald-50 rounded-xl border border-emerald-200/60">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Smile className="w-6 h-6 text-emerald-600" />
+                  <span className="text-lg font-semibold text-emerald-800">Calm Days</span>
+                </div>
+                <div className="text-4xl font-bold text-emerald-700">
+                  {stats.calmDaysThisWeek}
+                </div>
+                <div className="text-sm text-emerald-600 mt-1">
+                  out of {stats.totalDays} days this week
+                </div>
               </div>
-              <div className="text-sm text-emerald-600 mt-1">
-                out of {stats.totalDays} days this week
-              </div>
-            </div>
+            )}
 
+            {/* Right box: This Week - different message when stressed */}
             <div className="text-center p-4 bg-sky-50 rounded-xl border border-sky-200/60">
               <div className="flex items-center justify-center gap-2 mb-2">
                 <TrendingUp className="w-6 h-6 text-sky-600" />
                 <span className="text-lg font-semibold text-sky-800">This Week</span>
               </div>
               <div className="text-4xl font-bold text-sky-700">
-                {stats.calmDaysThisWeek > 3 ? 'Great!' : stats.calmDaysThisWeek > 1 ? 'Good!' : 'Keep going!'}
+                {isStressed ? "Let's slow things down together." : stats.calmDaysThisWeek > 3 ? 'Great!' : stats.calmDaysThisWeek > 1 ? 'Good!' : 'Keep going!'}
               </div>
               <div className="text-sm text-sky-600 mt-1">
-                You're doing well!
+                {isStressed ? "" : "You're doing well!"}
               </div>
             </div>
           </div>
@@ -132,7 +158,9 @@ export const ElderPersonalStats = ({ historicalData, selectedMood, analysis }: E
           {/* Encouraging Message */}
           <div className="text-center pt-4 border-t border-sky-200/60">
             <p className="text-lg text-muted-foreground">
-              {stats.calmDaysThisWeek >= 5 
+              {isStressed
+                ? "💡 Let's slow things down together."
+                : stats.calmDaysThisWeek >= 5 
                 ? "🌟 You've had a wonderful week! Keep up the great work!"
                 : stats.calmDaysThisWeek >= 3
                 ? "✨ You're doing great! Every day is a step forward."

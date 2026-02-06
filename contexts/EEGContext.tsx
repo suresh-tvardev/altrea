@@ -245,7 +245,7 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     }, 0);
   }, [toast]);
 
-  const processReading = useCallback((newReading: EEGReading, fromLocalStorage = false, providedAnalysis?: EmotionalAnalysis) => {
+  const processReading = useCallback((newReading: EEGReading, fromLocalStorage = false, providedAnalysis?: EmotionalAnalysis, skipAlertForSimulator = false) => {
     console.log('processReading called:', {
       fromLocalStorage,
       isInitialLoad: isInitialLoadRef.current,
@@ -281,9 +281,12 @@ export function EEGProvider({ children }: { children: ReactNode }) {
       previousState.current = newAnalysis.state;
 
       // Only process alerts if:
-      // 1. It's from localStorage (simulator trigger), OR
-      // 2. It's not the initial load (after initial load is complete)
-      if (fromLocalStorage || !isInitialLoadRef.current) {
+      // 1. From simulator: only when not skipping (skip first reading that was already in storage when caregiver page opened)
+      // 2. Not from simulator: only after initial load is complete
+      const shouldProcessAlert = fromLocalStorage
+        ? !skipAlertForSimulator
+        : !isInitialLoadRef.current;
+      if (shouldProcessAlert) {
         setTimeout(() => {
           const alertCheck = alertService.checkThresholds(newAnalysis);
           if (alertCheck && alertCheck.shouldAlert) {
@@ -478,6 +481,9 @@ export function EEGProvider({ children }: { children: ReactNode }) {
   // Track last processed reading to avoid duplicates
   const lastProcessedTrigger = useRef<number>(0);
   const lastSimulatorReadingTime = useRef<number>(0); // Track when last simulator reading was received
+  // Skip alert only for the first simulator reading if it was already in storage when this effect ran (page just opened)
+  const firstSimulatorReadingProcessedRef = useRef(false);
+  const simulatorReadingPresentAtMountRef = useRef(false);
 
   // Simulate data (calm for 30s, then stress) - used regardless of connection mode for now
   useEffect(() => {
@@ -491,6 +497,9 @@ export function EEGProvider({ children }: { children: ReactNode }) {
     }
 
     console.log('Setting up simulated data (localStorage + mock interval)');
+
+    // Remember if there was already a simulator reading in storage when we mounted (don't fire alert for that one)
+    simulatorReadingPresentAtMountRef.current = !!storageService.getSimulatorReading();
 
     // Mark initial load as complete after a short delay
     const initialLoadTimeout = setTimeout(() => {
@@ -557,9 +566,10 @@ export function EEGProvider({ children }: { children: ReactNode }) {
             
             // Update last simulator reading time
             lastSimulatorReadingTime.current = Date.now();
-            // Mark as from localStorage (simulator trigger)
-            // If analysis is provided, don't recalculate it
-            processReading(reading, true, readingData.analysis);
+            // Skip alert only if this reading was already in storage when we mounted (stale), not for new triggers from simulator
+            const skipAlert = simulatorReadingPresentAtMountRef.current && !firstSimulatorReadingProcessedRef.current;
+            firstSimulatorReadingProcessedRef.current = true;
+            processReading(reading, true, readingData.analysis, skipAlert);
           }
         } catch (error) {
           console.error('Error parsing simulator reading from localStorage:', error);
@@ -643,9 +653,10 @@ export function EEGProvider({ children }: { children: ReactNode }) {
           
           // Update last simulator reading time
           lastSimulatorReadingTime.current = Date.now();
-          // Mark as from localStorage (simulator trigger)
-          // Pass the analysis if available
-          processReading(readingObj, true, reading.analysis);
+          // Skip alert only if this reading was already in storage when we mounted (stale), not for new triggers from simulator
+          const skipAlert = simulatorReadingPresentAtMountRef.current && !firstSimulatorReadingProcessedRef.current;
+          firstSimulatorReadingProcessedRef.current = true;
+          processReading(readingObj, true, reading.analysis, skipAlert);
         } else {
           console.log('Simulator reading already processed:', {
             trigger: reading._trigger,

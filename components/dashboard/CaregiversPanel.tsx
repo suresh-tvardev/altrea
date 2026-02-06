@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
+import { cn, resolveAvatarUrl } from '@/lib/utils';
 import type { Caregiver } from '@/types/eeg';
-import { Phone, Mail, User, Star, MessageCircle, Settings, LogOut, Users } from 'lucide-react';
+import { Phone, User, Star, MessageCircle, Settings, LogOut, Users } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useToast } from '@/hooks/use-toast';
 import { getCareTeamMembers } from '@/app/actions/settings';
 import {
@@ -19,7 +20,7 @@ import { signOut } from '@/app/actions/auth';
 
 export const CaregiversPanel = () => {
   const { toast } = useToast();
-  const [caregivers, setCaregivers] = useState<Caregiver[]>([]);
+  const [caregivers, setCaregivers] = useState<(Caregiver & { avatarUrl?: string | null })[]>([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -134,9 +135,15 @@ export const CaregiversPanel = () => {
             >
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <User className="w-5 h-5 text-primary" />
-                  </div>
+                  <Avatar className="h-10 w-10 shrink-0">
+                    <AvatarImage
+                      src={resolveAvatarUrl((caregiver as { avatarUrl?: string | null }).avatarUrl, caregiver.name)}
+                      alt={caregiver.name}
+                    />
+                    <AvatarFallback className="bg-primary/10 text-primary text-sm">
+                      {caregiver.name.split(' ').map((n) => n[0]).join('').slice(0, 2)}
+                    </AvatarFallback>
+                  </Avatar>
                   <div>
                     <div className="flex items-center gap-2">
                       <span className="font-semibold text-foreground">{caregiver.name}</span>

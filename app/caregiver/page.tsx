@@ -230,27 +230,30 @@ export default function CaregiverDashboard() {
             </Card>
 
             {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-                {/* Left Column - Current Emotional State & Weekly Overview */}
-                <div className="lg:col-span-2 space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6 items-stretch">
+                {/* Left Column - Current Emotional State & Weekly Overview (height matches right) */}
+                <div className="lg:col-span-2 flex flex-col gap-6 min-h-0">
                     <EmotionalStateIndicator analysis={analysis} />
-                    <HistoricalChart data={historicalData} />
+                    <div className="flex-1 min-h-0 flex flex-col">
+                        <HistoricalChart data={historicalData} />
+                    </div>
                 </div>
 
                 {/* Right Column - Personalized Insights */}
-                <div className="space-y-6 w-full">
-                    <InsightsPanel insights={caregiverInsights} />
+                <div className="flex flex-col min-h-0 w-full">
+                    <InsightsPanel insights={caregiverInsights} className="flex-1 min-h-0" />
                 </div>
             </div>
 
-            {/* Bottom Section - Alerts & Caregivers */}
+            {/* Bottom Section - Alerts (same width as chart) & Caregivers */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Left Column - Empty */}
-                <div className="lg:col-span-2"></div>
-
-                {/* Right Column - Alerts, Caregivers */}
-                <div className="space-y-6 w-full">
+                {/* Left Column - Alerts, same width as Weekly Overview chart */}
+                <div className="lg:col-span-2 space-y-6">
                     <AlertsPanel alerts={alerts} onAcknowledge={acknowledgeAlert} />
+                </div>
+
+                {/* Right Column - Caregivers */}
+                <div className="space-y-6 w-full">
                     <CaregiversPanel />
                 </div>
             </div>

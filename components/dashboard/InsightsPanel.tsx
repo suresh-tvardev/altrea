@@ -4,6 +4,7 @@ import { Lightbulb, TrendingUp, AlertCircle, Sparkles } from 'lucide-react';
 
 interface InsightsPanelProps {
   insights: Insight[];
+  className?: string;
 }
 
 const insightConfig = {
@@ -27,15 +28,15 @@ const insightConfig = {
   },
 };
 
-export const InsightsPanel = ({ insights }: InsightsPanelProps) => {
+export const InsightsPanel = ({ insights, className }: InsightsPanelProps) => {
   return (
-    <div className="bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in">
+    <div className={cn("h-full flex flex-col bg-card rounded-2xl p-6 shadow-sm border border-border animate-fade-in", className)}>
       <div className="flex items-center gap-2 mb-4">
         <Sparkles className="w-5 h-5 text-primary" />
         <h3 className="text-lg font-semibold text-foreground">Personalized Insights</h3>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-3 flex-1 min-h-0 overflow-auto">
         {insights.map(insight => {
           const config = insightConfig[insight.type];
           const Icon = config.icon;

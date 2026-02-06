@@ -9,7 +9,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { useEEGSimulation } from '@/hooks/useEEGSimulation';
 import { useRole } from '@/contexts/RoleContext';
-import { AlertTriangle, Activity, Zap, Heart, Brain, ArrowLeft, Play, Square } from 'lucide-react';
+import { AlertTriangle, Activity, Zap, Heart, Brain, ArrowLeft, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { storageService } from '@/services/storage';
 import type { EEGReading, EmotionalState, EmotionalAnalysis } from '@/types/eeg';
@@ -117,8 +117,6 @@ export default function SimulatorPage() {
   const { injectReading, analysis, alerts } = useEEGSimulation();
   const { role } = useRole(); // Optional: used for badge display only
   const [stressLevel, setStressLevel] = useState(50);
-  const [isAutoPlaying, setIsAutoPlaying] = useState(false);
-  const [autoPlayInterval, setAutoPlayInterval] = useState<NodeJS.Timeout | null>(null);
   const [previewAnalysis, setPreviewAnalysis] = useState<EmotionalAnalysis | null>(null);
 
   // Update preview analysis when slider changes
@@ -260,29 +258,6 @@ export default function SimulatorPage() {
 
   const handlePresetScenario = (scenario: StressScenario) => {
     handleTriggerStress(scenario.stressLevel, scenario.anxietyBoost || false);
-  };
-
-  const startAutoPlay = () => {
-    if (autoPlayInterval) {
-      clearInterval(autoPlayInterval);
-    }
-    
-    setIsAutoPlaying(true);
-    const interval = setInterval(() => {
-      handleTriggerStress(stressLevel);
-    }, 2000); // Trigger every 2 seconds
-    
-    setAutoPlayInterval(interval);
-    toast.info('Auto-play started - triggering stress events every 2 seconds');
-  };
-
-  const stopAutoPlay = () => {
-    if (autoPlayInterval) {
-      clearInterval(autoPlayInterval);
-      setAutoPlayInterval(null);
-    }
-    setIsAutoPlaying(false);
-    toast.info('Auto-play stopped');
   };
 
   const displayAnalysis = previewAnalysis || analysis;
@@ -429,25 +404,6 @@ export default function SimulatorPage() {
                     <Play className="w-4 h-4 mr-2" />
                     Trigger Now
                   </Button>
-                  {!isAutoPlaying ? (
-                    <Button
-                      onClick={startAutoPlay}
-                      variant="outline"
-                      size="lg"
-                    >
-                      <Play className="w-4 h-4 mr-2" />
-                      Auto-Play
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={stopAutoPlay}
-                      variant="destructive"
-                      size="lg"
-                    >
-                      <Square className="w-4 h-4 mr-2" />
-                      Stop
-                    </Button>
-                  )}
                 </div>
               </div>
 
@@ -553,13 +509,10 @@ export default function SimulatorPage() {
               <strong>2. Preset Scenarios:</strong> Click any preset button to quickly trigger common stress patterns.
             </p>
             <p>
-              <strong>3. Auto-Play:</strong> Enable auto-play to continuously trigger stress events every 2 seconds at the selected level.
+              <strong>3. Monitor Alerts:</strong> Watch the alerts panel below. When stress exceeds thresholds (80% critical, 70% warning), alerts will be generated and sent to caregivers.
             </p>
             <p>
-              <strong>4. Monitor Alerts:</strong> Watch the alerts panel below. When stress exceeds thresholds (80% critical, 70% warning), alerts will be generated and sent to caregivers.
-            </p>
-            <p>
-              <strong>5. Test Caregiver View:</strong> Open the caregiver dashboard in another tab/window to see how alerts appear to caregivers.
+              <strong>4. Test Caregiver View:</strong> Open the caregiver dashboard in another tab/window to see how alerts appear to caregivers.
             </p>
           </CardContent>
         </Card>

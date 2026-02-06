@@ -656,10 +656,9 @@ export default function DemoPage() {
                                             4
                                         </div>
                                         <div>
-                                            <p className="font-medium">Test Auto-Play</p>
+                                            <p className="font-medium">Trigger stress manually</p>
                                             <p className="text-sm text-muted-foreground">
-                                                Set stress level to 85% using the slider, then click <strong>"Auto-Play"</strong>. 
-                                                Verify stress events trigger every 2 seconds. Click <strong>"Stop"</strong> to end.
+                                                Set stress level to 85% using the slider, then click <strong>"Trigger Now"</strong> to send a stress event. Use presets or repeat to test multiple events.
                                             </p>
                                         </div>
                                     </div>
