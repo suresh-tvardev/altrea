@@ -74,7 +74,7 @@ export default function CaregiverDashboard() {
     useEffect(() => {
         if (!checkingProfile && !roleLoading && !isElder) {
             setCaregiver({ name: 'Sara Zhou', avatarUrl: null });
-            setElderName('Maria Garcia');
+            setElderName('Dave Stanley');
         }
     }, [checkingProfile, roleLoading, isElder]);
 

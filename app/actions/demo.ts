@@ -173,11 +173,11 @@ export async function setupDemoEnvironment() {
             accountName: 'Garcia Care Team',
             deviceId: 'SN-DEMO-001',
             elder: {
-                email: 'mariagarcia@gmail.com',
+                email: 'davestanley@gmail.com',
                 password: 'Demo123!',
-                name: 'Maria Garcia',
+                name: 'Dave Stanley',
                 phone: '+1-555-0101',
-                avatarUrl: 'https://ui-avatars.com/api/?name=Maria+Garcia&size=128&background=ec4899&color=fff'
+                avatarUrl: 'https://ui-avatars.com/api/?name=Dave+Stanley&size=128&background=ec4899&color=fff'
             },
             caregiver: {
                 email: 'saraz@mit.edu',
@@ -219,7 +219,7 @@ export async function clearDemoEnvironment() {
 
     try {
         const demoEmails = [
-            'mariagarcia@gmail.com',
+            'davestanley@gmail.com',
             'saraz@mit.edu'
         ];
 
@@ -315,7 +315,7 @@ export async function checkDemoUsersExist() {
 
     try {
         const demoEmails = [
-            'mariagarcia@gmail.com',
+            'davestanley@gmail.com',
             'saraz@mit.edu'
         ];
 

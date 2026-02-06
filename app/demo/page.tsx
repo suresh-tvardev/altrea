@@ -79,10 +79,10 @@ const DEMO_ACCOUNTS = [
     {
         name: 'Garcia Care Team',
         elder: {
-            email: 'mariagarcia@gmail.com',
+            email: 'davestanley@gmail.com',
             password: 'Demo123!',
-            name: 'Maria Garcia',
-            avatarUrl: 'https://ui-avatars.com/api/?name=Maria+Garcia&size=128&background=ec4899&color=fff',
+            name: 'Dave Stanley',
+            avatarUrl: 'https://ui-avatars.com/api/?name=Dave+Stanley&size=128&background=ec4899&color=fff',
         },
         caregiver: {
             email: 'saraz@mit.edu',
@@ -95,7 +95,7 @@ const DEMO_ACCOUNTS = [
             name: 'Dr. Meredith Grey',
             avatarUrl: 'https://ui-avatars.com/api/?name=Meredith+Grey&size=128&background=10b981&color=fff',
         },
-        description: 'Elder & Care Team: Maria Garcia, Primary Caregiver Sara Zhou, Primary Physician Dr. Meredith Grey',
+        description: 'Elder & Care Team: Dave Stanley, Primary Caregiver Sara Zhou, Primary Physician Dr. Meredith Grey',
     },
 ];
 
@@ -545,7 +545,7 @@ export default function DemoPage() {
                                             <p className="font-medium">Login as Elder</p>
                                             <p className="text-sm text-muted-foreground">
                                                 Click <strong>"Login as Elder"</strong> for "Garcia Care Team" account. 
-                                                You should be redirected to the Elder Dashboard (Maria Garcia).
+                                                You should be redirected to the Elder Dashboard (Dave Stanley).
                                             </p>
                                         </div>
                                     </div>

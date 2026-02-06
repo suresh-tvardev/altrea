@@ -21,7 +21,7 @@ import type { MoodSelection } from '@/types/eeg';
 // Demo account credentials (Garcia Care Team)
 const DEMO_ACCOUNT = {
     elder: {
-        email: 'mariagarcia@gmail.com',
+        email: 'davestanley@gmail.com',
         password: 'Demo123!',
     },
     caregiver: {

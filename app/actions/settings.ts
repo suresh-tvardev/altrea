@@ -20,7 +20,7 @@ export async function getElderForAccount(): Promise<{ id: string; name: string; 
     // Demo mode: return demo elder info
     return {
         id: 'demo-elder-1',
-        name: 'Maria Garcia',
+        name: 'Dave Stanley',
         email: 'elder@demo.com',
         avatarUrl: '/images/profile/maria.jpg',
     };

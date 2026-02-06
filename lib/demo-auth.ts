@@ -19,7 +19,7 @@ const DEMO_USERS: Record<string, DemoUser> = {
     id: 'demo-elder-1',
     email: 'elder@demo.com',
     role: 'elder',
-    name: 'Maria Garcia',
+    name: 'Dave Stanley',
     avatarUrl: null,
   },
   'caregiver@demo.com': {

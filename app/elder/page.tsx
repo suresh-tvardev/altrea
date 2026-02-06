@@ -27,7 +27,7 @@ export default function ElderPage() {
         });
       } else {
         // Fallback if no data
-        setElder({ name: 'Maria Garcia', avatarUrl: '/images/profile/maria.jpg' });
+        setElder({ name: 'Dave Stanley', avatarUrl: '/images/profile/maria.jpg' });
       }
       setIsLoading(false);
     };
